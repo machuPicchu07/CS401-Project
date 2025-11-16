@@ -18,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ParkingGarageClient {
 	
-	//Private variables
+	//Private Variables
 	private static DriverGUI driverGUI1;
 	private static DriverGUI driverGUI2;
 
@@ -28,7 +28,7 @@ public class ParkingGarageClient {
 		//Public block variables
 		int assignedID = -1;		//Garage ID assigned by the server
 		boolean loggedIn = false;	//Indication of successful connection with Server
-		double ratePerSecond = 1.0;	//Rate per second to calculate fee
+		double ratePerSecond = 0.25;	//Rate per second to calculate fee
 		
 		
 		//A thread safe queue (Linked Blocking Queue) that will store license plates
@@ -52,7 +52,7 @@ public class ParkingGarageClient {
 
 			//Create a new Message object, indicate MsgType as NEWGARAGE for new garage connecting to the server
 			Message outMsg = new Message(MsgTypes.NEWGARAGE, -1);
-			out.writeObject(outMsg);
+			out.writeObject(outMsg); //Sends Message to Server
 			out.flush();
 
 			//Read Server Response through 'inMsg'
@@ -163,7 +163,7 @@ public class ParkingGarageClient {
 																		 *As the license plate reader allows any and all vehicles to enter,
 																		 * there can be multiple exit gates to allow multiple drivers to pay & exit. */
 			// ========= CREATE GARAGE EXIT GUI ==================
-
+			
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
