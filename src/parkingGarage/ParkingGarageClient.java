@@ -18,7 +18,7 @@ public class ParkingGarageClient {
 	public static void main(String[] args) {
 		int assignedID = -1;
 		boolean loggedIn = false;
-		double ratePerSecond = 1.0;
+		double ratePerSecond = 0.25;
 		// entrance license plate reader, plates will store in queue
 		BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 

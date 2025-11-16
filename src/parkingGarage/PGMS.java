@@ -73,6 +73,8 @@ public class PGMS { // Parking Garage Management System
 							garageID = garageCount++;
 							createNewGarage(garageID);
 							loggedIn = true;
+
+							// response to client
 							inMsg = new Message(MsgTypes.SUCCESS, garageID);
 							out.writeObject(inMsg);
 						}
@@ -83,32 +85,19 @@ public class PGMS { // Parking Garage Management System
 
 						switch (msgType) {
 						case NEWTICKET: {
-							UNPAIDTICKETS.get(garageID).add(inMsg.getTicket());
-							String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
-							try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) {
-								writer.write(inMsg.getTicket().toString());
-							}
+							addNewTicketToFile(inMsg);
+
+							// response to client
 							inMsg = new Message(MsgTypes.RECEIVED, garageID);
 							out.writeObject(inMsg);
 							out.flush();
-
 							break;
 						}
 						case LOOKUPTICKET: {
-							List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
-
-							if (tickets != null && !tickets.isEmpty()) {
-								Random random = new Random();
-								Ticket ticket = tickets.get(random.nextInt(tickets.size()));
-
+							Ticket ticket = lookUpUnpaidTicket(garageID, inMsg);
+							if (ticket != null) {
 								Message reply = new Message(MsgTypes.LOOKUPTICKET, garageID);
-								Ticket copy = new Ticket();
-								copy.setGuiID(inMsg.getTicket().getGuiID());
-								copy.setLicensePlate(ticket.getLicensePlate());
-								copy.setEntryTime(ticket.getEntryTime());
-
-								reply.setTicket(copy);
-								// inMsg.setTicket(ticket);
+								reply.setTicket(ticket);
 								out.writeObject(reply);
 								out.flush();
 							}
@@ -147,6 +136,29 @@ public class PGMS { // Parking Garage Management System
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+
+		private void addNewTicketToFile(Message inMsg) throws IOException {
+			UNPAIDTICKETS.get(garageID).add(inMsg.getTicket());
+			String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
+			try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) {
+				writer.write(inMsg.getTicket().toString());
+			}
+		}
+
+		private Ticket lookUpUnpaidTicket(int garageID, Message inMsg) {
+			List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
+			Ticket ticket = null;
+			Ticket copy = null;
+			if (tickets != null && !tickets.isEmpty()) {
+				Random random = new Random();
+				ticket = tickets.get(random.nextInt(tickets.size()));
+				copy = new Ticket();
+				copy.setGuiID(inMsg.getTicket().getGuiID());
+				copy.setLicensePlate(ticket.getLicensePlate());
+				copy.setEntryTime(ticket.getEntryTime());
+			}
+			return copy;
 		}
 
 	}
