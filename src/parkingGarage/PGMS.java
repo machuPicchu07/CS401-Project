@@ -146,6 +146,8 @@ public class PGMS { // Parking Garage Management System
 			}
 		}
 
+		// after ticket is paid, we need to remove a ticket from unpaid.txt
+
 		private Ticket lookUpUnpaidTicket(int garageID, Message inMsg) {
 			List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
 			Ticket ticket = null;

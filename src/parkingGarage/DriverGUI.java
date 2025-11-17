@@ -133,16 +133,20 @@ public class DriverGUI implements Runnable {
 	}
 
 	public void payButtonClicked() {
-		welcomeText.setText("Gate is Opening.");
-		payButton.setEnabled(false);
-		Thread thread = new Thread(() -> {
-			gate.openGate();
-			SwingUtilities.invokeLater(() -> {
-				welcomeText.setText("Thank you");
-				resetGUI();
+		CreditCard creditCard = new CreditCard();
+		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
+		if (paymentCollector.validatePayment()) {
+			welcomeText.setText("Gate is Opening.");
+			payButton.setEnabled(false);
+			Thread thread = new Thread(() -> {
+				gate.openGate();
+				SwingUtilities.invokeLater(() -> {
+					welcomeText.setText("Thank you");
+					resetGUI();
+				});
 			});
-		});
-		thread.start();
+			thread.start();
+		}
 
 	}
 
