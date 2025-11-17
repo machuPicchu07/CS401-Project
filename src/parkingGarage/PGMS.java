@@ -119,16 +119,22 @@ public class PGMS {
 						// MsgType LOOKUPTICKET creates a new Ticket object from the client's request
 						// If ticket is found from the two dimensional array, send ticket 'reply' to
 						// client
-						case LOOKUPTICKET: {
+						case LOOKUPUNPAIDTICKET: {
 							Ticket ticket = lookUpUnpaidTicket(garageID, inMsg);
 							if (ticket != null) {
-								Message reply = new Message(MsgTypes.LOOKUPTICKET, garageID);
+								Message reply = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
 								reply.setTicket(ticket);
 								out.writeObject(reply);
 								out.flush();
 							}
 
 							break;
+						}
+						case GETREPORT: {
+							Message reply = new Message(MsgTypes.GETREPORT, garageID);
+							Operator operator = new Operator();
+							// Operator(String username, String password, Report report, int garageID)
+
 						}
 						default:
 							throw new IllegalArgumentException("Unexpected value: " + msgType);

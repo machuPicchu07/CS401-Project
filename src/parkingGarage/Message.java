@@ -7,7 +7,7 @@ public class Message implements Serializable {
 
 	private int garageID;
 	private Operator operator; // to be implement
-	private Ticket ticket; // to be implement
+	private Ticket ticket;
 
 	public Message() {
 		this.msgType = MsgTypes.UNDEFINED;
