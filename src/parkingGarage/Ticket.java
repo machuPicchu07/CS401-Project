@@ -5,6 +5,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class Ticket implements Serializable {
+	
+	//Private variables
 	private int garageID;
 	private String licensePlate;
 	private double fee;
@@ -14,9 +16,11 @@ public class Ticket implements Serializable {
 	private Duration durationOfStay;
 	private int GuiID;
 
+	//Default Constructor
 	public Ticket() {
 	}
 
+	//Parameterized Constructor using licensePlate and garageID (Programmer Defined)
 	public Ticket(String licensePlate, int garageID) {
 		this.licensePlate = licensePlate;
 		this.entryTime = LocalDateTime.now();
@@ -26,6 +30,7 @@ public class Ticket implements Serializable {
 		this.exitTime = null;
 	}
 
+	//Parameterized Constructor using string from file read
 	public Ticket(String stringFromTxtFile) {
 		String[] parts = stringFromTxtFile.split(",");
 		garageID = Integer.parseInt(parts[0]);
@@ -35,14 +40,15 @@ public class Ticket implements Serializable {
 		entryTime = LocalDateTime.parse(parts[4]);
 		exitTime = LocalDateTime.parse(parts[5]);
 		durationOfStay = Duration.parse(parts[6]);
-
 	}
 
+	//Function to set exit time
 	private void setExitTime() {
 		this.exitTime = LocalDateTime.now();
 		durationOfStay = Duration.between(entryTime, exitTime);
 	}
 
+	//Function to calculate fee, rate passed in by the client
 	public void calculateFee(double ratePerS) {
 		setExitTime();
 		int s = (int) durationOfStay.getSeconds();
@@ -98,6 +104,7 @@ public class Ticket implements Serializable {
 		return entryTime;
 	}
 
+	//Create a String from the information from the Ticket variables, using ',' as a separator
 	@Override
 	public String toString() {
 		return garageID + "," + licensePlate + "," + fee + "," + paid + "," + entryTime + "," + exitTime + ","

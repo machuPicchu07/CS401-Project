@@ -1,8 +1,8 @@
 package parkingGarage;
-//Testing the github push
 
 public class Gate implements Runnable {
 
+	//Private Variables
 	private static int count = 0;
 //	private GateSensor sensor;
 	private int id;
@@ -10,6 +10,7 @@ public class Gate implements Runnable {
 	private volatile boolean isOpen;
 	private int garageID;
 
+	//Default Constructor
 	public Gate() {
 		this.id = count++;
 //		this.sensor = new GateSensor();
@@ -17,6 +18,7 @@ public class Gate implements Runnable {
 		this.isOpen = false;
 	}
 
+	//Parameterized Constructor
 	public Gate(int garageID, Location gateTypes) {
 		this.id = count++;
 //		this.sensor = new GateSensor();
@@ -38,10 +40,12 @@ public class Gate implements Runnable {
 		openGate();
 	}
 
+	//Function to Open Gate
 	public void openGate() {
 		if (isOpen)
 			return; // if its already opened, do nothing and return
 
+		//Run a gate sensor object
 		GateSensor sensor = new GateSensor();
 		Thread sensorThread = new Thread(sensor);
 		sensorThread.setDaemon(true);
@@ -61,7 +65,6 @@ public class Gate implements Runnable {
 						+ " Gate closed!");
 				isOpen = false;
 			}
-
 		}
 		isOpen = false;
 
