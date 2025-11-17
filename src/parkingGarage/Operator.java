@@ -51,5 +51,3 @@ public class Operator implements Serializable {
 	}
 
 }
-Operator.java
-2 KB
