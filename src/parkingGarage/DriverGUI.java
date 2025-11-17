@@ -135,8 +135,9 @@ public class DriverGUI implements Runnable {
 	public void payButtonClicked() {
 		CreditCard creditCard = new CreditCard();
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
+
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Opening.");
+			welcomeText.setText("Gate is Open.");
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();
