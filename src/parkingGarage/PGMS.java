@@ -101,6 +101,7 @@ public class PGMS {
 
 						} else if (msgType == MsgTypes.GARAGELOGIN) { // If garage existed
 							garageID = inMsg.getGarageID();
+							garageCount++;
 							loadGarage(garageID); // get the garageID and load tickets for garage
 						}
 						loggedIn = true; // Set this Garage to logged in
