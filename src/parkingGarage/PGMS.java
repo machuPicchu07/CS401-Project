@@ -99,9 +99,9 @@ public class PGMS {
 							garageID = garageCount++; // Increase Garage Count and Assign that to Garage ID
 							createNewGarage(garageID); // Run Function createNewGarage with Current Garage ID
 
-						} else if (msgType == MsgTypes.GARAGELOGIN) {
+						} else if (msgType == MsgTypes.GARAGELOGIN) { // If garage existed
 							garageID = inMsg.getGarageID();
-							loadGarage(garageID);
+							loadGarage(garageID); // get the garageID and load tickets for garage
 						}
 						loggedIn = true; // Set this Garage to logged in
 						// Create new Message object with MsgType
@@ -221,8 +221,8 @@ public class PGMS {
 
 		private void ticketIsPaid(Message inMsg) throws IOException {
 			PAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to PAIDTICKETS 2d array
-			String fileNameUnpaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
-			try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) { // Opens file
+			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
+			try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
 				writer.write(inMsg.getTicket().toString()); // Writes to file Ticket information
 			}
 		}
@@ -256,6 +256,10 @@ public class PGMS {
 				}
 			}
 
+			while (UNPAIDTICKETS.size() <= garageID)
+				UNPAIDTICKETS.add(null);
+			while (PAIDTICKETS.size() <= garageID)
+				PAIDTICKETS.add(null);
 			// add the list of tickets to list
 			UNPAIDTICKETS.set(garageID, unPaidList);
 			PAIDTICKETS.set(garageID, paidList);
