@@ -10,7 +10,7 @@ public class PaymentCollector {
 
 	public boolean validatePayment() {
 
-		return card.getCardNum().length() < 20 && card.getCardNum().length() > 13;
+		return card.getCardNum().length() <= 20 && card.getCardNum().length() > 13;
 
 	}
 }

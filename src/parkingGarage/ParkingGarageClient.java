@@ -1,5 +1,7 @@
 package parkingGarage;
 
+import java.io.File;
+import java.io.FileWriter;
 //java.io.*
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +12,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 //java.util.*
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,7 +30,8 @@ public class ParkingGarageClient {
 		int assignedID = -1; // Garage ID assigned by the server
 		boolean loggedIn = false; // Indication of successful connection with Server
 		double ratePerSecond = 0.25; // Rate per second to calculate fee
-
+		String garageIDFileName = "garageId.txt";
+		;
 		// A thread safe queue (Linked Blocking Queue) that will store license plates
 		BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
@@ -48,20 +52,41 @@ public class ParkingGarageClient {
 			InputStream inputStream = socket.getInputStream();
 			ObjectInputStream in = new ObjectInputStream(inputStream);
 
-			// Create a new Message object, indicate MsgType as NEWGARAGE for new garage
-			// connecting to the server
-			Message outMsg = new Message(MsgTypes.NEWGARAGE, -1);
-			out.writeObject(outMsg); // Sends Message to Server
-			out.flush();
+			File file = new File(garageIDFileName);
 
-			// Read Server Response through 'inMsg'
-			Message inMsg = (Message) in.readObject();
+			if (file.exists()) {
+				String garageNumber;
+				try (Scanner scanner = new Scanner(file)) {
+					garageNumber = scanner.nextLine().trim();
+				}
+				assignedID = Integer.parseInt(garageNumber);
+				Message outMsg = new Message(MsgTypes.GARAGELOGIN, assignedID);
+				out.writeObject(outMsg);
+				out.flush();
+				Message inMsg = (Message) in.readObject();
+				if (!loggedIn && inMsg.getMsgType() == MsgTypes.SUCCESS) {
+					loggedIn = true;
+				}
+			} else {
+				// Create a new Message object, indicate MsgType as NEWGARAGE for new garage
+				// connecting to the server
+				Message outMsg = new Message(MsgTypes.NEWGARAGE, -1);
+				out.writeObject(outMsg); // Sends Message to Server
+				out.flush();
 
-			// If not logged in and the message type is equal to SUCCESS, log in and use
-			// assigned ID from server
-			if (!loggedIn && inMsg.getMsgType() == MsgTypes.SUCCESS) {
-				loggedIn = true;
-				assignedID = inMsg.getGarageID();
+				// Read Server Response through 'inMsg'
+				Message inMsg = (Message) in.readObject();
+
+				// If not logged in and the message type is equal to SUCCESS, log in and use
+				// assigned ID from server
+				if (!loggedIn && inMsg.getMsgType() == MsgTypes.SUCCESS) {
+					loggedIn = true;
+					assignedID = inMsg.getGarageID();
+					try (FileWriter writer = new FileWriter(garageIDFileName, true)) { // Opens file
+						writer.write(String.valueOf(assignedID));// Writes to assignedID to file
+					}
+				}
+
 			}
 
 			// Constant (final) ID is assigned, constant 'running' is assigned a bool if
@@ -155,14 +180,31 @@ public class ParkingGarageClient {
 					ex.printStackTrace();
 				}
 			};
+
+			// this will send a Message contained paid ticket to server, and server save the
+			// Ticket to file
+			GUIpaidTicket paidTicketCallback = (int GuiID, Ticket ticket) -> {
+				try {
+					Message msg = new Message(MsgTypes.TICKETPAID, garageID);
+					// System.out.println(ticket.toString());
+					ticket.setTicketPaid();
+					msg.setTicket(ticket);
+					out.writeObject(msg);
+					out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			};
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE GUI ===
 
-			driverGUI1 = new DriverGUI(garageID, getUnpaidCallback); // Create a GUI with this Garage ID and the
-																		// callback function
+			driverGUI1 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback); // Create a GUI with this
+																							// Garage ID and the
+			// callback function
 			new Thread(driverGUI1).start(); // Runs the first driver GUI in a thread
 			guiById.put(driverGUI1.getGuiID(), driverGUI1); // Maps the GUI ID with the driver GUI
-			driverGUI2 = new DriverGUI(garageID, getUnpaidCallback); // Create another GUI with this Garage ID and the
-																		// callback function
+			driverGUI2 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback); // Create another GUI with this
+																							// Garage ID and the
+			// callback function
 			new Thread(driverGUI2).start(); // Runs the second driver GUI in a thread
 			guiById.put(driverGUI2.getGuiID(), driverGUI2); // Maps the GUI ID with the driver GUI
 			/*
@@ -172,7 +214,9 @@ public class ParkingGarageClient {
 			 */
 			// ========= CREATE GARAGE EXIT GUI ==================
 
-		} catch (ClassNotFoundException e) {
+		} catch (
+
+		ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();

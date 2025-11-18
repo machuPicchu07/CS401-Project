@@ -22,6 +22,7 @@ public class DriverGUI implements Runnable {
 	private int GuiID;
 	private Ticket ticket;
 	private GUIgetUnpaidTicket getUnpaidCallback;
+	private GUIpaidTicket paidTicketCallback;
 
 //	private JFrame frame;
 	private JButton leaveButton;
@@ -30,13 +31,14 @@ public class DriverGUI implements Runnable {
 	// this is used to store license plate from exit license plate reader
 	BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
-	public DriverGUI(int garageID, GUIgetUnpaidTicket getUnpaidCallback) {
+	public DriverGUI(int garageID, GUIgetUnpaidTicket getUnpaidCallback, GUIpaidTicket paidTicketCallback) {
 		this.gate = new Gate(garageID, Location.Exit);
 		this.garageID = garageID;
 		this.GuiID = ++count;
 		this.LPR = new LicensePlateReader(garageID, Location.Exit, queue);
 		this.ticket = null;
 		this.getUnpaidCallback = getUnpaidCallback;
+		this.paidTicketCallback = paidTicketCallback;
 	}
 
 	public int getGarageID() {
@@ -137,16 +139,19 @@ public class DriverGUI implements Runnable {
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
 
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Open.");
+			welcomeText.setText("Gate is Open, Thank you");
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();
 				SwingUtilities.invokeLater(() -> {
-					welcomeText.setText("Thank you");
 					resetGUI();
 				});
 			});
 			thread.start();
+			paidTicketCallback.run(GuiID, ticket);
+		} else {
+			welcomeText.setText("Invalid credit card, Please Pay again.");
+			payButton.setEnabled(true);
 		}
 
 	}
@@ -161,4 +166,3 @@ public class DriverGUI implements Runnable {
 	}
 
 }
-

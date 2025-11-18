@@ -5,8 +5,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 public class Ticket implements Serializable {
-	
-	//Private variables
+
+	// Private variables
 	private int garageID;
 	private String licensePlate;
 	private double fee;
@@ -16,11 +16,12 @@ public class Ticket implements Serializable {
 	private Duration durationOfStay;
 	private int GuiID;
 
-	//Default Constructor
+	// Default Constructor
 	public Ticket() {
 	}
 
-	//Parameterized Constructor using licensePlate and garageID (Programmer Defined)
+	// Parameterized Constructor using licensePlate and garageID (Programmer
+	// Defined)
 	public Ticket(String licensePlate, int garageID) {
 		this.licensePlate = licensePlate;
 		this.entryTime = LocalDateTime.now();
@@ -28,27 +29,30 @@ public class Ticket implements Serializable {
 		this.garageID = garageID;
 		this.fee = 0;
 		this.exitTime = null;
+		this.durationOfStay = null;
 	}
 
-	//Parameterized Constructor using string from file read
+	// Parameterized Constructor using string from file read
 	public Ticket(String stringFromTxtFile) {
-		String[] parts = stringFromTxtFile.split(",");
-		garageID = Integer.parseInt(parts[0]);
-		licensePlate = parts[1];
-		fee = Double.parseDouble(parts[2]);
-		paid = parts[3].equals("1") ? true : false;
-		entryTime = LocalDateTime.parse(parts[4]);
-		exitTime = LocalDateTime.parse(parts[5]);
-		durationOfStay = Duration.parse(parts[6]);
+		String[] parts = stringFromTxtFile.split(",", -1);
+
+		garageID = Integer.parseInt(parts[0].trim());
+		licensePlate = parts[1].trim();
+		fee = Double.parseDouble(parts[2].trim());
+		paid = Boolean.parseBoolean(parts[3].trim());
+		this.entryTime = parseDate(parts[4]);
+		this.exitTime = parseDate(parts[5]);
+		this.durationOfStay = parseDuration(parts[6]);
+
 	}
 
-	//Function to set exit time
+	// Function to set exit time
 	private void setExitTime() {
 		this.exitTime = LocalDateTime.now();
 		durationOfStay = Duration.between(entryTime, exitTime);
 	}
 
-	//Function to calculate fee, rate passed in by the client
+	// Function to calculate fee, rate passed in by the client
 	public void calculateFee(double ratePerS) {
 		setExitTime();
 		int s = (int) durationOfStay.getSeconds();
@@ -68,11 +72,11 @@ public class Ticket implements Serializable {
 	}
 
 	public void setGarageID(int id) {
-		GuiID = id;
+		garageID = id;
 	}
 
 	public int getGarageID() {
-		return GuiID;
+		return garageID;
 	}
 
 	public Duration getDurationOfStay() {
@@ -104,11 +108,34 @@ public class Ticket implements Serializable {
 		return entryTime;
 	}
 
-	//Create a String from the information from the Ticket variables, using ',' as a separator
+	// Create a String from the information from the Ticket variables, using ',' as
+	// a separator
+	private String isNull(Object o) {
+		return o == null ? "null" : o.toString();
+	}
+
 	@Override
 	public String toString() {
-		return garageID + "," + licensePlate + "," + fee + "," + paid + "," + entryTime + "," + exitTime + ","
-				+ durationOfStay + "\n";
+		return garageID + "," + licensePlate + "," + fee + "," + paid + "," + isNull(entryTime) + "," + isNull(exitTime)
+				+ "," + isNull(durationOfStay) + "\n";
+	}
+
+	private LocalDateTime parseDate(String s) {
+		if (s == null)
+			return null;
+		s = s.trim();
+		if (s.isEmpty() || s.equalsIgnoreCase("null"))
+			return null;
+		return LocalDateTime.parse(s);
+	}
+
+	private Duration parseDuration(String s) {
+		if (s == null)
+			return null;
+		s = s.trim();
+		if (s.isEmpty() || s.equalsIgnoreCase("null"))
+			return null;
+		return Duration.parse(s);
 	}
 
 }
