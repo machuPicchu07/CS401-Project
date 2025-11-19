@@ -1,9 +1,11 @@
 package parkingGarage;
 
+import java.io.BufferedReader;
 //java.io.*
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -71,6 +73,7 @@ public class PGMS {
 		private int garageID;
 		boolean loggedIn = false;
 		private MsgTypes msgType;
+		private final Object fileLock = new Object();
 
 		// Constructor
 		public ClientHandler(Socket socket) {
@@ -195,28 +198,55 @@ public class PGMS {
 
 		// Adds new Ticket to file
 		private void addNewTicketToFile(Message inMsg) throws IOException {
-			UNPAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to UNPAIDTICKETS 2d array
-			String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt"; // Find appropriate file name
-			try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) { // Opens file
-				writer.write(inMsg.getTicket().toString()); // Writes to file Ticket information
+			synchronized (fileLock) {
+				UNPAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to UNPAIDTICKETS 2d array
+				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt"; // Find appropriate file name
+				try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) { // Opens file
+					writer.write(inMsg.getTicket().toString()); // Writes to file Ticket information
+				}
 			}
+
 		}
 
 		// Lookup Unpaid Ticket
-		private Ticket lookUpUnpaidTicket(int garageID, Message inMsg) {
+		private Ticket lookUpUnpaidTicket(int garageID, Message inMsg) throws IOException {
 			List<Ticket> tickets = UNPAIDTICKETS.get(garageID); // Create ticket list using UNPAIDTICKETS 2d array key
 																// (garageID)
 			Ticket ticket = null; // Create a ticket object
 			Ticket copy = null; // create a copy of the ticket, so two DriverGUI don't show the same ticket
 			if (tickets != null && !tickets.isEmpty()) { // If the UNPAIDTICKETS 2d array is not null and is not empty
 				Random random = new Random(); // Create a random object
-				ticket = tickets.get(random.nextInt(tickets.size())); // Grab random ticket to send to client
+				int index = random.nextInt(tickets.size());
+				ticket = tickets.get(index); // Grab random ticket to send to client
+				tickets.remove(index);
+
 				copy = new Ticket();
 				copy.setGuiID(inMsg.getTicket().getGuiID());
 				copy.setLicensePlate(ticket.getLicensePlate());
 				copy.setEntryTime(ticket.getEntryTime());
-
 			}
+
+			if (ticket != null) {
+				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
+				synchronized (fileLock) {
+					StringBuilder fileInfo = new StringBuilder();
+
+					try (BufferedReader reader = new BufferedReader(new FileReader(fileNameUnpaid))) {
+						String line;
+						while ((line = reader.readLine()) != null) {
+							Ticket fileTicket = new Ticket(line);
+							if (!fileTicket.getLicensePlate().equals(ticket.getLicensePlate())) {
+								// i need to remove the "line" from the txt file.
+								fileInfo.append(line).append(System.lineSeparator());
+							}
+						}
+					}
+					try (FileWriter writer = new FileWriter(fileNameUnpaid)) { // Opens file
+						writer.write(fileInfo.toString()); // Writes to file Ticket information
+					}
+				}
+			}
+
 			return copy; // return random ticket to client
 		}
 
