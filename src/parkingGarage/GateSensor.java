@@ -2,7 +2,7 @@ package parkingGarage;
 
 import java.util.Random;
 
-class GateSensor implements Runnable {
+public class GateSensor implements Runnable {
 	
 	//Private Variables
 	private boolean running;
