@@ -31,7 +31,7 @@ public class ParkingGarageClient {
 		boolean loggedIn = false; // Indication of successful connection with Server
 		double ratePerSecond = 0.25; // Rate per second to calculate fee
 		String garageIDFileName = "garageId.txt";
-		;
+
 		// A thread safe queue (Linked Blocking Queue) that will store license plates
 		BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
