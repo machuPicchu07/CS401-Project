@@ -8,12 +8,6 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.net.Socket;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -21,7 +15,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
@@ -29,15 +22,13 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-public class OperatorGUI implements Runnable {
-	private Socket socket;
-	private ObjectOutputStream out;
-	private ObjectInputStream in;
+public class OperatorGUISample implements Runnable {
+
 	private boolean isConnected = false;
 	private boolean isLoggedIn = false;
 
 	// Operator data
-	private Operator operator;
+	// private Operator operator;
 	private int garageID;
 
 	// GUI components
@@ -52,28 +43,25 @@ public class OperatorGUI implements Runnable {
 	private JLabel statusLabel;
 
 	// Dashboard components
+	private JButton logoutButton;
 	private JButton getReportButton;
 	private JButton searchButton;
 	private JTextField searchField;
 	private JTextArea displayArea;
 
-	// Server connection details
-	private static final String SERVER_HOST = "localhost";
-	private static final int SERVER_PORT = 7777;
-
-	public OperatorGUI() {
-		this.operator = null;
+	public OperatorGUISample() {
+		// this.operator = null;
 		this.garageID = -1;
 	}
 
 	@Override
 	public void run() {
-		SwingUtilities.invokeLater(this::createAndShowGUI);
+		SwingUtilities.invokeLater(this::createWindow);
 
 	}
 
 	// Creates and displays the main GUI window
-	private void createAndShowGUI() {
+	private void createWindow() {
 		mainFrame = new JFrame("Parking Garage Operatore");
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mainFrame.setSize(700, 500);
@@ -83,91 +71,10 @@ public class OperatorGUI implements Runnable {
 		createLoginPanel();
 		createDashboardPanel();
 
-		// Show login panel initially
 		mainFrame.setContentPane(loginPanel);
 		mainFrame.setVisible(true);
 
-		connectToServer();
 	}
-
-	// Establishes connection to the parking garage server
-	private void connectToServer() {
-		try {
-			socket = new Socket(SERVER_HOST, SERVER_PORT);
-
-			// Create output stream first
-			OutputStream outputStream = socket.getOutputStream();
-			out = new ObjectOutputStream(outputStream);
-			out.flush();
-
-			// Create input stream
-			InputStream inputStream = socket.getInputStream();
-			in = new ObjectInputStream(inputStream);
-
-			isConnected = true;
-			updateStatus("Connected to server", Color.GREEN);
-
-			// Start listening for server messages
-			startServerListener();
-
-		} catch (IOException e) {
-			isConnected = false;
-			updateStatus("Failed to connect to server: " + e.getMessage(), Color.BLUE);
-			JOptionPane.showMessageDialog(mainFrame, "Couldn't connect to server.", "Connection Error",
-					JOptionPane.ERROR_MESSAGE);
-
-		}
-
-	}
-
-	// Starts a background thread to listen for server messages
-
-	private void startServerListener() {
-		Thread listenerThread = new Thread(() -> {
-			try {
-				while (isConnected && !socket.isClosed()) {
-					Message msg = (Message) in.readObject();
-					handleServerMessage(msg);
-				}
-			} catch (IOException | ClassNotFoundException e) {
-				if (isConnected) {
-					SwingUtilities.invokeLater(() -> {
-						JOptionPane.showMessageDialog(mainFrame, "Connection to server lost.", "Connection Error",
-								JOptionPane.ERROR_MESSAGE);
-					});
-				}
-				isConnected = false;
-			}
-		});
-		listenerThread.setDaemon(true);
-		listenerThread.start();
-	}
-
-	// Handles messages received from the server
-
-	private void handleServerMessage(Message msg) {
-		SwingUtilities.invokeLater(() -> {
-			switch (msg.getMsgType()) {
-			case SUCCESS:
-				handleLoginSuccess(msg);
-				break;
-			case GETREPORT:
-				handleReportReceived(msg);
-				break;
-			case LOOKUPPAIDTICKET:
-				handleTicketLookupResult(msg);
-				break;
-			default:
-				System.out.println("Received message: " + msg.getMsgType());
-				break;
-			}
-		});
-	}
-
-	// Creates the login panel
-	// Username:
-	// Password:
-	// Button: login
 
 	private void createLoginPanel() {
 		loginPanel = new JPanel(new GridBagLayout());
@@ -219,8 +126,6 @@ public class OperatorGUI implements Runnable {
 		gbc.gridy = 3;
 		loginPanel.add(statusLabel, gbc);
 
-		// Add enter key listener to password field
-		passwordField.addActionListener(e -> handleLogin());
 	}
 
 	// Creates the operator dashboard panel
@@ -241,8 +146,16 @@ public class OperatorGUI implements Runnable {
 		JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		getReportButton = new JButton("GetReport");
 		getReportButton.setFont(new Font("Arial", Font.BOLD, 14));
-		getReportButton.addActionListener(e -> handleGetReport());
+//		getReportButton.addActionListener(e -> handleGetReport());
 		reportButtonPanel.add(getReportButton);
+//		controlPanel.add(reportButtonPanel);
+
+		// Logout Button
+		logoutButton = new JButton("logout");
+		logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+		reportButtonPanel.add(logoutButton);
+		logoutButton.addActionListener(e -> handleLogout());
+
 		controlPanel.add(reportButtonPanel);
 
 		// Add some spacing
@@ -253,12 +166,12 @@ public class OperatorGUI implements Runnable {
 		searchPanel.add(new JLabel("License Plate:"));
 		searchField = new JTextField(15);
 		searchField.setFont(new Font("Arial", Font.PLAIN, 14));
-		searchField.addActionListener(e -> handleSearch());
+//		searchField.addActionListener(e -> handleSearch());
 		searchPanel.add(searchField);
 
 		searchButton = new JButton("Search");
 		searchButton.setFont(new Font("Arial", Font.BOLD, 14));
-		searchButton.addActionListener(e -> handleSearch());
+//		searchButton.addActionListener(e -> handleSearch());
 		searchPanel.add(searchButton);
 		controlPanel.add(searchPanel);
 
@@ -273,41 +186,22 @@ public class OperatorGUI implements Runnable {
 		dashboardPanel.add(scrollPane, BorderLayout.CENTER);
 	}
 
-	// Handles login button click
-	// Client sends Message with Operator(username/password/garageId) to server
-	// Server verifies operator and sends "SUCCESS" message type back if operator
-	// exists
-
 	private void handleLogin() {
-		if (!isConnected) {
-			updateStatus("Not connected to server", Color.RED);
-			return;
-		}
 
-		String username = usernameField.getText().trim();
-		String password = new String(passwordField.getPassword());
-
-		if (username.isEmpty() || password.isEmpty()) {
-			updateStatus("Please enter username and password", Color.RED);
-			return;
-		}
-
-		// Create operator object and send login request
-		try {
-			operator = new Operator(username, password, garageID);
-			Message loginMsg = new Message(MsgTypes.LOGIN, garageID);
-			loginMsg.setOperator(operator);
-
-			out.writeObject(loginMsg);
-			out.flush();
-
-			updateStatus("Authenticating...", Color.BLUE);
-			loginButton.setEnabled(false);
-
-		} catch (IOException e) {
-			updateStatus("Login failed: " + e.getMessage(), Color.RED);
-			loginButton.setEnabled(true);
-		}
+		mainFrame.setContentPane(dashboardPanel);
+		mainFrame.revalidate();
+		mainFrame.repaint();
 	}
+
+	private void handleLogout() {
+
+		mainFrame.setContentPane(loginPanel);
+		mainFrame.revalidate();
+		mainFrame.repaint();
+	}
+
+//	private void handleGetReport() {
+
+//	}
 
 }

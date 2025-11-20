@@ -139,7 +139,7 @@ public class DriverGUI implements Runnable {
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
 
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Open, Thank you");
+			welcomeText.setText("Gate is Open, Please Exit. Thank you");
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();
