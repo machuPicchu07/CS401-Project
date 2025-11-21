@@ -3,7 +3,7 @@ package parkingGarage;
 public class RunOperatorGUISample {
 
 	public static void main(String[] args) {
-		OperatorGUISample gui = new OperatorGUISample();
+		OperatorGUI gui = new OperatorGUI(0);
 		new Thread(gui).run();
 	}
 

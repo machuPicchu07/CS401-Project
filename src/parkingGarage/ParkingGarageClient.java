@@ -22,6 +22,7 @@ public class ParkingGarageClient {
 	// Private Variables
 	private static DriverGUI driverGUI1;
 	private static DriverGUI driverGUI2;
+	private static OperatorGUI operatorGUI;
 
 	// Program Main Section
 	public static void main(String[] args) {
@@ -139,8 +140,22 @@ public class ParkingGarageClient {
 							targetGUI.showUnpaidTicket(t); // GUI will show the unpaid Ticket
 							break;
 						}
+						case OPERATORSUCCESS: {
+							// if operator logged in successfully
+							operatorGUI.loggedInSuccess();
+							break;
+						}
+						case OPERATORFAILURE: {
+							// if operator logged in successfully
+							operatorGUI.loggedInFail();
+							break;
+						}
+						case GETREPORT: {
+							operatorGUI.displayReport(msg.getOperator().getReport());
+							break;
+						}
 						default:
-							System.out.println("Unknown message: " + msg);
+
 							break;
 						}
 					}
@@ -151,20 +166,19 @@ public class ParkingGarageClient {
 			receiver.start();
 			// ======================LISTENING FOR INCOMING MESSAGE================
 
-			// ======== CREATE LICENSE PLATE READERS AND RUN THEM TO 'READ' LICENSE
-			// PLATES===
+			// ==CREATE LICENSE PLATE READERS AND RUN THEM TO 'READ' LICENSE PLATES
 			LicensePlateReader entryLPR1 = new LicensePlateReader(garageID, Location.Entry, queue);
 			LicensePlateReader entryLPR2 = new LicensePlateReader(garageID, Location.Entry, queue);
 			new Thread(entryLPR1).start();
 			new Thread(entryLPR2).start();
-			// ======== CREATE LICENSE PLATE READERS AND RUN THEM TO 'READ' LICENSE
-			// PLATES===
+			// == CREATE LICENSE PLATE READERS AND RUN THEM TO 'READ' LICENSE PLATES
 
 			// ========= CREATE GARAGE EXIT GUI ==================
 
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE GUI ===
-			GUIgetUnpaidTicket getUnpaidCallback = (int GuiID) -> { // Define call back function with parameter int
-																	// (GuiID)
+			DriverGUIgetUnpaidTicketCB getUnpaidCallback = (int GuiID) -> { // Define call back function with parameter
+																			// int
+				// (GuiID)
 				try {
 					Message msg = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID); // Create new message with message
 																						// type
@@ -183,7 +197,7 @@ public class ParkingGarageClient {
 
 			// this will send a Message contained paid ticket to server, and server save the
 			// Ticket to file
-			GUIpaidTicket paidTicketCallback = (int GuiID, Ticket ticket) -> {
+			DriverGUIpaidTicketCB paidTicketCallback = (int GuiID, Ticket ticket) -> {
 				try {
 					Message msg = new Message(MsgTypes.TICKETPAID, garageID);
 					// System.out.println(ticket.toString());
@@ -196,15 +210,12 @@ public class ParkingGarageClient {
 				}
 			};
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE GUI ===
-
-			driverGUI1 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback); // Create a GUI with this
-																							// Garage ID and the
-			// callback function
+			// Create a GUI with this Garage ID and the
+			driverGUI1 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback);
 			new Thread(driverGUI1).start(); // Runs the first driver GUI in a thread
 			guiById.put(driverGUI1.getGuiID(), driverGUI1); // Maps the GUI ID with the driver GUI
-			driverGUI2 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback); // Create another GUI with this
-																							// Garage ID and the
-			// callback function
+
+			driverGUI2 = new DriverGUI(garageID, getUnpaidCallback, paidTicketCallback);
 			new Thread(driverGUI2).start(); // Runs the second driver GUI in a thread
 			guiById.put(driverGUI2.getGuiID(), driverGUI2); // Maps the GUI ID with the driver GUI
 			/*
@@ -213,6 +224,35 @@ public class ParkingGarageClient {
 			 * multiple exit gates to allow multiple drivers to pay & exit.
 			 */
 			// ========= CREATE GARAGE EXIT GUI ==================
+
+			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE Operator GUI ===
+			OperatorGUILoginCB operatorLoginCallback = (String username, String pw) -> {
+				try {
+					Message msg = new Message(MsgTypes.OPERATORLOGIN, garageID);
+					Operator operator = new Operator(username, pw, garageID);
+					msg.setOperator(operator);
+					out.writeObject(msg);
+					out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			};
+
+			OperatorGUIgetReportCB operatorGetReportCallback = () -> {
+				try {
+					Message msg = new Message(MsgTypes.GETREPORT, garageID);
+					out.writeObject(msg);
+					out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+
+				}
+			};
+			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE Operator GUI ===
+
+			// =========== Create/start Operator GUI ==================
+			operatorGUI = new OperatorGUI(garageID, operatorLoginCallback, operatorGetReportCallback);
+			new Thread(operatorGUI).start();
 
 		} catch (
 

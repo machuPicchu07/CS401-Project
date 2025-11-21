@@ -90,7 +90,7 @@ public class PGMS {
 
 				// Create Message Object
 				Message inMsg;
-
+				Message outMsg;
 				// While the receiving Message is not null
 				while ((inMsg = (Message) in.readObject()) != null) {
 
@@ -109,7 +109,7 @@ public class PGMS {
 						}
 						loggedIn = true; // Set this Garage to logged in
 						// Create new Message object with MsgType
-						Message outMsg = new Message(MsgTypes.SUCCESS, garageID);
+						outMsg = new Message(MsgTypes.SUCCESS, garageID);
 						out.writeObject(outMsg); // Send response to Client
 
 					} else {
@@ -122,8 +122,8 @@ public class PGMS {
 							addNewTicketToFile(inMsg);
 
 							// Response to Client
-							inMsg = new Message(MsgTypes.RECEIVED, garageID);
-							out.writeObject(inMsg);
+							outMsg = new Message(MsgTypes.RECEIVED, garageID);
+							out.writeObject(outMsg);
 							out.flush();
 							break;
 						}
@@ -134,24 +134,51 @@ public class PGMS {
 						case LOOKUPUNPAIDTICKET: {
 							Ticket ticket = lookUpUnpaidTicket(garageID, inMsg);
 							if (ticket != null) {
-								Message reply = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
-								reply.setTicket(ticket);
-								out.writeObject(reply);
+								outMsg = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
+								outMsg.setTicket(ticket);
+								out.writeObject(outMsg);
 								out.flush();
 							}
-
-							break;
-						}
-						case GETREPORT: {
-							Message reply = new Message(MsgTypes.GETREPORT, garageID);
-							Operator operator = new Operator();
-							// Operator(String username, String password, Report report, int garageID)
 							break;
 						}
 						case TICKETPAID: {
 //							String str = inMsg.getTicket().toString();
 //							System.out.println(str);
 							ticketIsPaid(inMsg);
+							break;
+						}
+						case OPERATORLOGIN: {
+							if (isOperatorAuthenticated(inMsg)) {
+								outMsg = new Message(MsgTypes.OPERATORSUCCESS, garageID);
+								System.out.println("correct pw");
+								out.writeObject(outMsg);
+								out.flush();
+							} else {
+								outMsg = new Message(MsgTypes.OPERATORFAILURE, garageID);
+								System.out.println("wrong pw");
+								out.writeObject(outMsg);
+								out.flush();
+							}
+							break;
+
+						}
+						case GETREPORT: {
+							outMsg = new Message(MsgTypes.GETREPORT, garageID);
+							List<Ticket> source = PAIDTICKETS.get(garageID);
+							List<Ticket> copy;
+							synchronized (source) {
+								copy = new ArrayList<>(source); // shallow copy of the list
+							}
+
+							Report report = new Report(garageID, copy);
+
+							Operator operator = new Operator();
+							operator.setReport(report);
+							outMsg.setOperator(operator);
+							out.writeObject(outMsg);
+							out.flush();
+							System.out.println("sent report");
+							// Operator(String username, String password, Report report, int garageID)
 							break;
 						}
 						default:
@@ -218,7 +245,7 @@ public class PGMS {
 				Random random = new Random(); // Create a random object
 				int index = random.nextInt(tickets.size());
 				ticket = tickets.get(index); // Grab random ticket to send to client
-				tickets.remove(index);
+				// tickets.remove(index);
 
 				copy = new Ticket();
 				copy.setGuiID(inMsg.getTicket().getGuiID());
@@ -226,7 +253,29 @@ public class PGMS {
 				copy.setEntryTime(ticket.getEntryTime());
 			}
 
+			return copy; // return random ticket to client
+		}
+
+		private void ticketIsPaid(Message inMsg) throws IOException {
+
+			Ticket ticket = inMsg.getTicket();
+			PAIDTICKETS.get(garageID).add(ticket); // Add ticket to PAIDTICKETS 2d array
+			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
+
+			synchronized (fileLock) {
+				try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
+					writer.write(ticket.toString()); // Writes to file Ticket information
+				}
+			}
+
+			// remove the ticket from unpaid ticket
 			if (ticket != null) {
+				List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
+				for (int i = 0; i < tickets.size(); i++) {
+					if (tickets.get(i).getLicensePlate().equals(ticket.getLicensePlate())) {
+						tickets.remove(i);
+					}
+				}
 				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
 				synchronized (fileLock) {
 					StringBuilder fileInfo = new StringBuilder();
@@ -245,16 +294,6 @@ public class PGMS {
 						writer.write(fileInfo.toString()); // Writes to file Ticket information
 					}
 				}
-			}
-
-			return copy; // return random ticket to client
-		}
-
-		private void ticketIsPaid(Message inMsg) throws IOException {
-			PAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to PAIDTICKETS 2d array
-			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
-			try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
-				writer.write(inMsg.getTicket().toString()); // Writes to file Ticket information
 			}
 		}
 
@@ -295,13 +334,29 @@ public class PGMS {
 			UNPAIDTICKETS.set(garageID, unPaidList);
 			PAIDTICKETS.set(garageID, paidList);
 
-			System.out.println("garage# " + garageID + " unpaid tickets:");
-			for (Ticket t : unPaidList)
-				System.out.println(t);
+//			System.out.println("garage# " + garageID + " unpaid tickets:");
+//			for (Ticket t : unPaidList)
+//				System.out.println(t);
+//
+//			System.out.println("garage# " + garageID + " paid tickets:");
+//			for (Ticket t : paidList)
+//				System.out.println(t);
+		}
 
-			System.out.println("garage# " + garageID + " paid tickets:");
-			for (Ticket t : paidList)
-				System.out.println(t);
+		private boolean isOperatorAuthenticated(Message inMsg) throws FileNotFoundException, IOException {
+			String operatorUsername = inMsg.getOperator().getUsername();
+			String operatorPw = inMsg.getOperator().getPassword();
+			try (BufferedReader reader = new BufferedReader(new FileReader("username_pw.txt"))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					String[] parts = line.split(",");
+					if (operatorUsername.equals(parts[0]) && operatorPw.equals(parts[1])) {
+						return true;
+					}
+
+				}
+			}
+			return false;
 		}
 	}
 
