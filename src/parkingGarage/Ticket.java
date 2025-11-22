@@ -91,6 +91,10 @@ public class Ticket implements Serializable {
 		paid = true;
 	}
 
+	public void setTicketPaid(boolean paid) {
+		this.paid = paid;
+	}
+
 	public void setLicensePlate(String licensePlate) {
 		this.licensePlate = licensePlate;
 
@@ -104,8 +108,16 @@ public class Ticket implements Serializable {
 		this.entryTime = entryTime;
 	}
 
+	public void setExitTime(LocalDateTime exitTime) {
+		this.exitTime = exitTime;
+	}
+
 	public LocalDateTime getEntryTime() {
 		return entryTime;
+	}
+
+	public LocalDateTime getExitTime() {
+		return exitTime;
 	}
 
 	// Create a String from the information from the Ticket variables, using ',' as

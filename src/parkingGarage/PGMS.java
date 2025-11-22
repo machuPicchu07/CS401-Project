@@ -74,6 +74,9 @@ public class PGMS {
 
 	private static void checkGarages() throws IOException {
 
+		// check if the server is running the first time.
+		// if its running the first time, create the file and save it.
+		// otherwise load the total of garage from file to garageCount;
 		File file = new File(numberOfGarageFileName);
 		if (file.exists()) {
 			String garageNumber;
@@ -200,6 +203,14 @@ public class PGMS {
 							out.flush();
 							System.out.println("sent report");
 							// Operator(String username, String password, Report report, int garageID)
+							break;
+						}
+						case SEARCHTICKET: {
+							Ticket ticket = searchTicket(inMsg);
+							outMsg = new Message(MsgTypes.SEARCHTICKET, garageID);
+							outMsg.setTicket(ticket);
+							out.writeObject(outMsg);
+							out.flush();
 							break;
 						}
 						default:
@@ -349,7 +360,7 @@ public class PGMS {
 					unPaidList.add(ticket);
 				}
 			}
-
+			// set it to null in case its empty;
 			while (UNPAIDTICKETS.size() <= garageID)
 				UNPAIDTICKETS.add(null);
 			while (PAIDTICKETS.size() <= garageID)
@@ -381,6 +392,36 @@ public class PGMS {
 				}
 			}
 			return false;
+		}
+
+		private Ticket searchTicket(Message inMsg) {
+			Ticket ticket = inMsg.getTicket();
+			List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
+			for (Ticket t : tickets) {
+				if (t.getLicensePlate().equals(ticket.getLicensePlate())) {
+					return copyTicket(t);
+				}
+			}
+			tickets = PAIDTICKETS.get(garageID);
+			for (Ticket t : tickets) {
+				if (t.getLicensePlate().equals(ticket.getLicensePlate())) {
+					return copyTicket(t);
+				}
+			}
+			return ticket;
+		}
+
+		private Ticket copyTicket(Ticket original) {
+			Ticket copy = new Ticket();
+			copy.setGarageID(original.getGarageID());
+			copy.setLicensePlate(original.getLicensePlate());
+			copy.setEntryTime(original.getEntryTime());
+			copy.setExitTime(original.getExitTime());
+			copy.setTicketPaid(original.isTicketPaid());
+			copy.setGuiID(original.getGuiID());
+			copy.calculateFee(original.getFee());
+			// etc — copy all needed fields
+			return copy;
 		}
 	}
 

@@ -31,7 +31,8 @@ public class DriverGUI implements Runnable {
 	// this is used to store license plate from exit license plate reader
 	BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
-	public DriverGUI(int garageID, DriverGUIgetUnpaidTicketCB getUnpaidCallback, DriverGUIpaidTicketCB paidTicketCallback) {
+	public DriverGUI(int garageID, DriverGUIgetUnpaidTicketCB getUnpaidCallback,
+			DriverGUIpaidTicketCB paidTicketCallback) {
 		this.gate = new Gate(garageID, Location.Exit);
 		this.garageID = garageID;
 		this.GuiID = ++count;
@@ -56,12 +57,12 @@ public class DriverGUI implements Runnable {
 	}
 
 	private void createWindow() {
-		String name = "Garage ID #" + garageID + ", GUI #" + GuiID;
+		String name = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
 		JFrame frame = new JFrame(name);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
 		createUI(frame);
-		frame.setSize(1000, 300);
+		frame.setSize(1200, 300);
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}

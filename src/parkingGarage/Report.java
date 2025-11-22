@@ -74,6 +74,10 @@ public class Report implements Serializable {
 		return creationDate;
 	}
 
+	public List<Ticket> getTickets() {
+		return tickets;
+	}
+
 	public String getReportInfo() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(garageID).append(",").append(avgStayTime).append(",").append(totalFee).append(",")

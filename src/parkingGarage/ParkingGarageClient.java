@@ -42,7 +42,7 @@ public class ParkingGarageClient {
 
 		try {
 			// Create a socket to connect to server
-			Socket socket = new Socket("10.0.0.106", 7777);// IP address should replace localhost
+			Socket socket = new Socket("localhost", 7777);// IP address should replace localhost
 
 			// Create ObjectOutputStream from the OutPutStream
 			OutputStream outputStream = socket.getOutputStream();
@@ -154,8 +154,10 @@ public class ParkingGarageClient {
 							operatorGUI.displayReport(msg.getOperator().getReport());
 							break;
 						}
+						case SEARCHTICKET: {
+							operatorGUI.displayTicket(msg.getTicket());
+						}
 						default:
-
 							break;
 						}
 					}
@@ -248,10 +250,25 @@ public class ParkingGarageClient {
 
 				}
 			};
+
+			OperatorGUISearchTicketCB operatorGUISearchTicketCallback = (String licensePlate) -> {
+				try {
+					Message msg = new Message(MsgTypes.SEARCHTICKET, garageID);
+					Ticket ticket = new Ticket(licensePlate, garageID);
+					// set entry time to null to show this ticket is not a regular ticket
+					ticket.setEntryTime(null);
+					msg.setTicket(ticket);
+					out.writeObject(msg);
+					out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			};
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE Operator GUI ===
 
 			// =========== Create/start Operator GUI ==================
-			operatorGUI = new OperatorGUI(garageID, operatorLoginCallback, operatorGetReportCallback);
+			operatorGUI = new OperatorGUI(garageID, operatorLoginCallback, operatorGetReportCallback,
+					operatorGUISearchTicketCallback);
 			new Thread(operatorGUI).start();
 
 		} catch (

@@ -8,6 +8,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -32,6 +34,7 @@ public class OperatorGUI implements Runnable {
 	private int garageID;
 	OperatorGUILoginCB operatorLoginCallback;
 	OperatorGUIgetReportCB operatorGetReportCallback;
+	OperatorGUISearchTicketCB operatorGUISearchTicketCallback;
 	// GUI components
 	private JFrame mainFrame;
 	private JPanel loginPanel;
@@ -51,11 +54,13 @@ public class OperatorGUI implements Runnable {
 	private JTextArea displayArea;
 
 	public OperatorGUI(int garageID, OperatorGUILoginCB operatorLoginCallback,
-			OperatorGUIgetReportCB operatorGetReportCallback) {
-		// this.operator = null;
+			OperatorGUIgetReportCB operatorGetReportCallback,
+			OperatorGUISearchTicketCB operatorGUISearchTicketCallback) {
+
 		this.garageID = garageID;
 		this.operatorLoginCallback = operatorLoginCallback;
 		this.operatorGetReportCallback = operatorGetReportCallback;
+		this.operatorGUISearchTicketCallback = operatorGUISearchTicketCallback;
 	}
 
 	@Override
@@ -66,9 +71,9 @@ public class OperatorGUI implements Runnable {
 
 	// Creates and displays the main GUI window
 	private void createWindow() {
-		mainFrame = new JFrame("Parking Garage Operatore");
+		mainFrame = new JFrame("Parking Garage Operator GUI");
 		mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		mainFrame.setSize(800, 600);
+		mainFrame.setSize(1200, 600);
 		mainFrame.setLocationRelativeTo(null);
 
 		// Create both panels
@@ -174,7 +179,7 @@ public class OperatorGUI implements Runnable {
 
 		searchButton = new JButton("Search");
 		searchButton.setFont(new Font("Arial", Font.BOLD, 14));
-//		searchButton.addActionListener(e -> handleSearch());
+		searchButton.addActionListener(e -> searchTicket());
 		searchPanel.add(searchButton);
 		controlPanel.add(searchPanel);
 
@@ -201,7 +206,8 @@ public class OperatorGUI implements Runnable {
 
 	private void logout() {
 		SwingUtilities.invokeLater(() -> {
-			displayArea.setText(" ");
+			displayArea.setText("");
+			searchField.setText("");
 			mainFrame.setContentPane(loginPanel);
 			mainFrame.revalidate();
 			mainFrame.repaint();
@@ -238,15 +244,69 @@ public class OperatorGUI implements Runnable {
 			sb.append("Report for garage #").append(report.getGarageId()).append('\n');
 			sb.append("----------------------------------------------------\n");
 			sb.append("Average stay time: ").append(report.getAvgStayTIme()).append(" mins \n");
-			sb.append("Total fee: #").append(report.getTotalFee()).append("\n");
-			sb.append(report.getTicketStrings());
-
+			sb.append("Total fee: $").append(report.getTotalFee()).append("\n");
+			// sb.append(report.getTicketStrings());
+			List<Ticket> tickets = report.getTickets();
+			for (Ticket t : tickets) {
+				sb.append(formatTicket(t));
+			}
 			SwingUtilities.invokeLater(() -> {
 				displayArea.setText(sb.toString());
 				displayArea.setCaretPosition(0);
 			});
 		}
 
+	}
+
+	private void searchTicket() {
+		SwingUtilities.invokeLater(() -> {
+			String licensePlate = searchField.getText().trim().toUpperCase();
+			if (!licensePlate.equals("")) {
+				operatorGUISearchTicketCallback.run(licensePlate);
+			}
+		});
+	}
+
+	public void displayTicket(Ticket ticket) {
+
+		SwingUtilities.invokeLater(() -> {
+			StringBuilder sb = new StringBuilder();
+			if (ticket.getEntryTime() == null) {
+				// that means this ticket not found;
+				sb.append(ticket.getLicensePlate() + " is not found");
+				displayArea.setText(sb.toString());
+				displayArea.setCaretPosition(0);
+			} else {
+				sb.append(formatTicket(ticket));
+				displayArea.setText(sb.toString());
+				displayArea.setCaretPosition(0);
+			}
+		});
+
+	}
+
+	private String formatTicket(Ticket ticket) {
+
+		String entryTime = (ticket.getEntryTime() != null)
+				? ticket.getEntryTime().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"))
+				: "null";
+		String exitTime = (ticket.getExitTime() != null)
+				? ticket.getExitTime().format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss"))
+				: "null";
+		String isPaid = (ticket.isTicketPaid() == true) ? "true" : "false";
+		StringBuilder sb = new StringBuilder();
+		String duration = (ticket.getDurationOfStay() == null) ? "null"
+				: String.valueOf(ticket.getDurationOfStay().getSeconds());
+
+		sb.append("\nLicense Plate: " + ticket.getLicensePlate());
+		sb.append("  Garage #: " + ticket.getGarageID());
+		sb.append("  Paid? : " + isPaid);
+		sb.append("  Entry Time: " + entryTime);
+		sb.append("  Exit Time: " + exitTime);
+		sb.append("  Duration of Stay:  " + duration);
+		sb.append("  Fee: $" + ticket.getFee());
+
+		return sb.toString();
 	}
 //	private void handleGetReport() {
 
