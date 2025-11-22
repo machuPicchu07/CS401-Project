@@ -233,18 +233,19 @@ public class OperatorGUI implements Runnable {
 	}
 
 	public void displayReport(Report report) {
+		if (report != null) {
+			StringBuilder sb = new StringBuilder();
+			sb.append("Report for garage #").append(report.getGarageId()).append('\n');
+			sb.append("----------------------------------------------------\n");
+			sb.append("Average stay time: ").append(report.getAvgStayTIme()).append(" mins \n");
+			sb.append("Total fee: #").append(report.getTotalFee()).append("\n");
+			sb.append(report.getTicketStrings());
 
-		StringBuilder sb = new StringBuilder();
-		sb.append("Report for garage #").append(report.getGarageId()).append('\n');
-		sb.append("----------------------------------------------------\n");
-		sb.append("Average stay time: ").append(report.getAvgStayTIme()).append(" mins \n");
-		sb.append("Total fee: #").append(report.getTotalFee()).append("\n");
-		sb.append(report.getTicketStrings());
-
-		SwingUtilities.invokeLater(() -> {
-			displayArea.setText(sb.toString());
-			displayArea.setCaretPosition(0);
-		});
+			SwingUtilities.invokeLater(() -> {
+				displayArea.setText(sb.toString());
+				displayArea.setCaretPosition(0);
+			});
+		}
 
 	}
 //	private void handleGetReport() {

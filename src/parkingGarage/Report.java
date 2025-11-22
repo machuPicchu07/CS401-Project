@@ -35,17 +35,24 @@ public class Report implements Serializable {
 
 	// Function to calculate average stay time
 	private void calculateAvgStayTime() {
+		if (tickets == null || tickets.isEmpty()) {
+			avgStayTime = 0;
+			return;
+		}
 		Duration duration = Duration.ofSeconds(0);
 		for (Ticket t : tickets) {
 			// Add amount of every ticket duration of stay into 'duration'
 			duration = duration.plus(t.getDurationOfStay());
 		}
-		avgStayTime = (int) duration.getSeconds() / 60 / tickets.size(); // Seconds divided by 60 divided by PAIDTICKETS
-																			// size
+		avgStayTime = (int) duration.getSeconds() / 60 / tickets.size(); // Seconds divided by 60 divided by
+																			// PAIDTICKETS
+
 	}
 
 	// Function to calculate total amount of fees by adding all fees
 	private void calculateTotalFee() {
+		if (tickets == null)
+			return;
 		for (Ticket t : tickets) {
 			totalFee += t.getFee();
 		}

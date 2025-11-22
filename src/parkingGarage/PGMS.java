@@ -29,6 +29,7 @@ public class PGMS {
 	private static final List<List<Ticket>> UNPAIDTICKETS = new ArrayList<>();
 
 	private static int garageCount = 0;
+	static String numberOfGarageFileName = "numberOfGarage.txt";
 
 	// Program Main Section
 	public static void main(String[] args) {
@@ -37,11 +38,16 @@ public class PGMS {
 		ServerSocket server = null;
 
 		try {
+			checkGarages();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		try {
 			server = new ServerSocket(7777); // Run server on Socket 7777
 			server.setReuseAddress(true);
 
 			while (true) { // Run server perpetually
-
 				// Create a socket object 'client' equal to a connecting socket, wait (block)
 				// until a socket has connected
 				Socket client = server.accept();
@@ -66,6 +72,22 @@ public class PGMS {
 		}
 	}
 
+	private static void checkGarages() throws IOException {
+
+		File file = new File(numberOfGarageFileName);
+		if (file.exists()) {
+			String garageNumber;
+			try (Scanner scanner = new Scanner(file)) {
+				garageNumber = scanner.nextLine().trim();
+				garageCount = Integer.parseInt(garageNumber);
+			}
+		} else {
+			try (FileWriter writer = new FileWriter(numberOfGarageFileName, true)) {
+				writer.write(String.valueOf(garageCount));
+			}
+		}
+	}
+
 	private static class ClientHandler implements Runnable {
 
 		// Private Variables
@@ -73,7 +95,7 @@ public class PGMS {
 		private int garageID;
 		boolean loggedIn = false;
 		private MsgTypes msgType;
-		private final Object fileLock = new Object();
+		private final Object fileLockHandler = new Object();
 
 		// Constructor
 		public ClientHandler(Socket socket) {
@@ -104,7 +126,6 @@ public class PGMS {
 
 						} else if (msgType == MsgTypes.GARAGELOGIN) { // If garage existed
 							garageID = inMsg.getGarageID();
-							garageCount++;
 							loadGarage(garageID); // get the garageID and load tickets for garage
 						}
 						loggedIn = true; // Set this Garage to logged in
@@ -201,7 +222,7 @@ public class PGMS {
 		}
 
 		// Function to Create a new Garage with a garage ID
-		private void createNewGarage(int garageID) {
+		private void createNewGarage(int garageID) throws IOException {
 
 			// Both UNPAIDTICKETS & PAIDTICKETS are instantiated and pushed into their
 			// respective Two-Dimensional array
@@ -218,14 +239,17 @@ public class PGMS {
 			try (FileWriter writerPaid = new FileWriter(fileNamePaid, true);
 					FileWriter writerUnpaid = new FileWriter(fileNameUnpaid, true)) {
 				System.out.println("Created New Garage # " + garageID);
-			} catch (IOException e) {
-				e.printStackTrace();
+			}
+
+			// save total number of garages on server
+			try (FileWriter writer = new FileWriter(numberOfGarageFileName)) {
+				writer.write(String.valueOf(garageCount));
 			}
 		}
 
 		// Adds new Ticket to file
 		private void addNewTicketToFile(Message inMsg) throws IOException {
-			synchronized (fileLock) {
+			synchronized (fileLockHandler) {
 				UNPAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to UNPAIDTICKETS 2d array
 				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt"; // Find appropriate file name
 				try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) { // Opens file
@@ -262,7 +286,7 @@ public class PGMS {
 			PAIDTICKETS.get(garageID).add(ticket); // Add ticket to PAIDTICKETS 2d array
 			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
 
-			synchronized (fileLock) {
+			synchronized (fileLockHandler) {
 				try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
 					writer.write(ticket.toString()); // Writes to file Ticket information
 				}
@@ -277,7 +301,7 @@ public class PGMS {
 					}
 				}
 				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
-				synchronized (fileLock) {
+				synchronized (fileLockHandler) {
 					StringBuilder fileInfo = new StringBuilder();
 
 					try (BufferedReader reader = new BufferedReader(new FileReader(fileNameUnpaid))) {
