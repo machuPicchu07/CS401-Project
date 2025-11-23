@@ -237,11 +237,21 @@ public class PGMS {
 
 			// Both UNPAIDTICKETS & PAIDTICKETS are instantiated and pushed into their
 			// respective Two-Dimensional array
-			List<Ticket> unPaidList = new ArrayList<Ticket>();
-			UNPAIDTICKETS.add(unPaidList); // first garage is on UNPAIDTICKETS[0];
-			List<Ticket> paidList = new ArrayList<Ticket>();
-			PAIDTICKETS.add(paidList);
 
+//			List<Ticket> unPaidList = new ArrayList<Ticket>();
+//			UNPAIDTICKETS.add(unPaidList); // first garage is on UNPAIDTICKETS[0];
+//			List<Ticket> paidList = new ArrayList<Ticket>();
+//			PAIDTICKETS.add(paidList);
+
+			// make sure the list exist
+			while (UNPAIDTICKETS.size() <= garageID)
+				UNPAIDTICKETS.add(null);
+			while (PAIDTICKETS.size() <= garageID)
+				PAIDTICKETS.add(null);
+			if (UNPAIDTICKETS.get(garageID) == null)
+				UNPAIDTICKETS.set(garageID, new ArrayList<>());
+			if (PAIDTICKETS.get(garageID) == null)
+				PAIDTICKETS.set(garageID, new ArrayList<>());
 			// Format text file name
 			String fileNamePaid = "garage#" + Integer.toString(garageID) + "_paid.txt";
 			String fileNameUnpaid = "garage#" + Integer.toString(garageID) + "_unpaid.txt";
@@ -419,7 +429,9 @@ public class PGMS {
 			copy.setExitTime(original.getExitTime());
 			copy.setTicketPaid(original.isTicketPaid());
 			copy.setGuiID(original.getGuiID());
-			copy.calculateFee(original.getFee());
+			copy.setFee(original.getFee());
+			copy.setDurationOfStay(original.getDurationOfStay());
+			// copy.calculateFee(original.getFee());
 			// etc — copy all needed fields
 			return copy;
 		}

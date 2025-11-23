@@ -23,6 +23,7 @@ public class ParkingGarageClient {
 	private static DriverGUI driverGUI1;
 	private static DriverGUI driverGUI2;
 	private static OperatorGUI operatorGUI;
+	private static volatile double ratePerSecond = 0.01;
 
 	// Program Main Section
 	public static void main(String[] args) {
@@ -30,9 +31,9 @@ public class ParkingGarageClient {
 		// Public block variables
 		int assignedID = -1; // Garage ID assigned by the server
 		boolean loggedIn = false; // Indication of successful connection with Server
-		double ratePerSecond = 0.25; // Rate per second to calculate fee
+		// double initialRate = 0.25; // Rate per second to calculate fee
 		String garageIDFileName = "garageId.txt";
-
+		String garageRateFileName = "garageRate.txt";
 		// A thread safe queue (Linked Blocking Queue) that will store license plates
 		BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
@@ -57,10 +58,21 @@ public class ParkingGarageClient {
 
 			if (file.exists()) {
 				String garageNumber;
+				String parkingRate;
+
+				// read garageID from file
 				try (Scanner scanner = new Scanner(file)) {
 					garageNumber = scanner.nextLine().trim();
 				}
 				assignedID = Integer.parseInt(garageNumber);
+
+				// read parking rate from file
+				File rateFile = new File(garageRateFileName);
+				try (Scanner scanner = new Scanner(rateFile)) {
+					parkingRate = scanner.nextLine().trim();
+				}
+				ratePerSecond = Double.parseDouble(parkingRate);
+
 				Message outMsg = new Message(MsgTypes.GARAGELOGIN, assignedID);
 				out.writeObject(outMsg);
 				out.flush();
@@ -86,6 +98,9 @@ public class ParkingGarageClient {
 					try (FileWriter writer = new FileWriter(garageIDFileName, true)) { // Opens file
 						writer.write(String.valueOf(assignedID));// Writes to assignedID to file
 					}
+					try (FileWriter writer = new FileWriter(garageRateFileName, true)) { // Opens file
+						writer.write(String.valueOf(ratePerSecond));// Writes to assignedID to file
+					}
 				}
 
 			}
@@ -94,7 +109,7 @@ public class ParkingGarageClient {
 			// SUCCESS or otherwise
 			final int garageID = assignedID;
 			final boolean running = loggedIn;
-
+			// double ratePerSecond = initialRate;
 			// ========LISTENING FOR LICENSE PLATE READER FOR LICENSE PLATE===========
 			Thread sender = new Thread(() -> { // Thread 'sender' is made, runs while logged in
 				try {
@@ -264,11 +279,20 @@ public class ParkingGarageClient {
 					e.printStackTrace();
 				}
 			};
+
+			OperatorGUISetRateCB operatorGUISetRateCallback = (double rate) -> {
+				ratePerSecond = rate;
+				try (FileWriter writer = new FileWriter(garageRateFileName)) { // Opens file
+					writer.write(String.valueOf(rate));// Writes to assignedID to file
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			};
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE Operator GUI ===
 
 			// =========== Create/start Operator GUI ==================
 			operatorGUI = new OperatorGUI(garageID, operatorLoginCallback, operatorGetReportCallback,
-					operatorGUISearchTicketCallback);
+					operatorGUISearchTicketCallback, operatorGUISetRateCallback);
 			new Thread(operatorGUI).start();
 
 		} catch (

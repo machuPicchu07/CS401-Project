@@ -17,6 +17,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
@@ -35,6 +36,7 @@ public class OperatorGUI implements Runnable {
 	OperatorGUILoginCB operatorLoginCallback;
 	OperatorGUIgetReportCB operatorGetReportCallback;
 	OperatorGUISearchTicketCB operatorGUISearchTicketCallback;
+	OperatorGUISetRateCB operatorGUISetRateCallback;
 	// GUI components
 	private JFrame mainFrame;
 	private JPanel loginPanel;
@@ -49,18 +51,22 @@ public class OperatorGUI implements Runnable {
 	// Dashboard components
 	private JButton logoutButton;
 	private JButton getReportButton;
+
 	private JButton searchButton;
 	private JTextField searchField;
 	private JTextArea displayArea;
+	private JButton setRateButton;
+	private JTextField inputRateField;
 
 	public OperatorGUI(int garageID, OperatorGUILoginCB operatorLoginCallback,
-			OperatorGUIgetReportCB operatorGetReportCallback,
-			OperatorGUISearchTicketCB operatorGUISearchTicketCallback) {
+			OperatorGUIgetReportCB operatorGetReportCallback, OperatorGUISearchTicketCB operatorGUISearchTicketCallback,
+			OperatorGUISetRateCB operatorGUISetRateCallback) {
 
 		this.garageID = garageID;
 		this.operatorLoginCallback = operatorLoginCallback;
 		this.operatorGetReportCallback = operatorGetReportCallback;
 		this.operatorGUISearchTicketCallback = operatorGUISearchTicketCallback;
+		this.operatorGUISetRateCallback = operatorGUISetRateCallback;
 	}
 
 	@Override
@@ -174,7 +180,6 @@ public class OperatorGUI implements Runnable {
 		searchPanel.add(new JLabel("License Plate:"));
 		searchField = new JTextField(15);
 		searchField.setFont(new Font("Arial", Font.PLAIN, 14));
-//		searchField.addActionListener(e -> handleSearch());
 		searchPanel.add(searchField);
 
 		searchButton = new JButton("Search");
@@ -182,6 +187,19 @@ public class OperatorGUI implements Runnable {
 		searchButton.addActionListener(e -> searchTicket());
 		searchPanel.add(searchButton);
 		controlPanel.add(searchPanel);
+
+		// Set rate panel
+		JPanel setRatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		setRatePanel.add(new JLabel("Enter New Rate Per Second: "));
+		inputRateField = new JTextField(15);
+		inputRateField.setFont(new Font("Arial", Font.PLAIN, 14));
+		setRatePanel.add(inputRateField);
+
+		setRateButton = new JButton(" Set  ");
+		setRateButton.setFont(new Font("Arial", Font.BOLD, 14));
+		setRateButton.addActionListener(e -> setRate());
+		setRatePanel.add(setRateButton);
+		controlPanel.add(setRatePanel);
 
 		dashboardPanel.add(controlPanel, BorderLayout.NORTH);
 
@@ -231,6 +249,24 @@ public class OperatorGUI implements Runnable {
 			statusLabel.setText("Invalid username or password");
 			passwordField.setText("");
 			usernameField.setText("");
+		});
+	}
+
+	private void setRate() {
+		SwingUtilities.invokeLater(() -> {
+			String inputRate = inputRateField.getText().trim();
+			double rate = Double.parseDouble(inputRate);
+			if (rate > 0 && rate < 10) {
+				operatorGUISetRateCallback.run(rate);
+				inputRateField.setText("");
+				JOptionPane.showMessageDialog(null, "New parking rate have been set to $" + rate + " per second",
+						"Success", JOptionPane.INFORMATION_MESSAGE);
+			} else {
+				inputRateField.setText("");
+				JOptionPane.showMessageDialog(null, "rate must be between 0 and $10 per second", "Invalid input",
+						JOptionPane.INFORMATION_MESSAGE);
+			}
+
 		});
 	}
 
@@ -296,15 +332,15 @@ public class OperatorGUI implements Runnable {
 		String isPaid = (ticket.isTicketPaid() == true) ? "true" : "false";
 		StringBuilder sb = new StringBuilder();
 		String duration = (ticket.getDurationOfStay() == null) ? "null"
-				: String.valueOf(ticket.getDurationOfStay().getSeconds());
+				: String.valueOf(ticket.getDurationOfStay().getSeconds() / 60);
 
 		sb.append("\nLicense Plate: " + ticket.getLicensePlate());
 		sb.append("  Garage #: " + ticket.getGarageID());
 		sb.append("  Paid? : " + isPaid);
 		sb.append("  Entry Time: " + entryTime);
 		sb.append("  Exit Time: " + exitTime);
-		sb.append("  Duration of Stay:  " + duration);
-		sb.append("  Fee: $" + ticket.getFee());
+		sb.append("  Duration of Stay:  " + duration + " mins");
+		sb.append("  Fee: $" + String.format("%.2f", ticket.getFee()));
 
 		return sb.toString();
 	}

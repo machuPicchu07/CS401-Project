@@ -63,6 +63,10 @@ public class Ticket implements Serializable {
 		return fee;
 	}
 
+	public void setFee(double fee) {
+		this.fee = fee;
+	}
+
 	public void setGuiID(int id) {
 		GuiID = id;
 	}
@@ -81,6 +85,10 @@ public class Ticket implements Serializable {
 
 	public Duration getDurationOfStay() {
 		return durationOfStay;
+	}
+
+	public void setDurationOfStay(Duration duration) {
+		this.durationOfStay = duration;
 	}
 
 	public boolean isTicketPaid() {
