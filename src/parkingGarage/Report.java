@@ -111,10 +111,5 @@ public class Report implements Serializable {
 
 		return sb.toString();
 
-		// Example Report from toString();
-		/*
-		 * 1,45,123.75,2025-11-01 1,XY658R,80,80,EntryTime,ExitTime,DurationOfStay
-		 * 1,A4358Z,80,80,EntryTime,ExitTime,DurationOfStay ...rest of tickets
-		 */
 	}
 }

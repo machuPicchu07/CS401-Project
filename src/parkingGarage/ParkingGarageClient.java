@@ -202,6 +202,8 @@ public class ParkingGarageClient {
 					// LOOKUPTICKET and this instance of
 					// GarageID
 					Ticket ticket = new Ticket(); // New Ticket object
+					ticket.setGarageID(garageID);
+					System.out.println(garageID);
 					ticket.setGuiID(GuiID); // Set the Ticket's GuiID with the callback function's GuiID
 					// System.out.println(GuiID);
 					msg.setTicket(ticket); // Assign the Ticket object to the Message

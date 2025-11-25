@@ -156,6 +156,7 @@ public class PGMS {
 						// If ticket is found from the two dimensional array, send ticket 'reply' to
 						// client
 						case LOOKUPUNPAIDTICKET: {
+
 							Ticket ticket = lookUpUnpaidTicket(garageID, inMsg);
 							if (ticket != null) {
 								outMsg = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
@@ -290,9 +291,8 @@ public class PGMS {
 				Random random = new Random(); // Create a random object
 				int index = random.nextInt(tickets.size());
 				ticket = tickets.get(index); // Grab random ticket to send to client
-				// tickets.remove(index);
-
 				copy = new Ticket();
+				copy.setGarageID(garageID);
 				copy.setGuiID(inMsg.getTicket().getGuiID());
 				copy.setLicensePlate(ticket.getLicensePlate());
 				copy.setEntryTime(ticket.getEntryTime());
@@ -313,7 +313,7 @@ public class PGMS {
 				}
 			}
 
-			// remove the ticket from unpaid ticket
+			// remove the ticket from unpaid ticket txt and list
 			if (ticket != null) {
 				List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
 				for (int i = 0; i < tickets.size(); i++) {
@@ -330,7 +330,7 @@ public class PGMS {
 						while ((line = reader.readLine()) != null) {
 							Ticket fileTicket = new Ticket(line);
 							if (!fileTicket.getLicensePlate().equals(ticket.getLicensePlate())) {
-								// i need to remove the "line" from the txt file.
+								// i need to remove the "line(ticket)" from the txt file.
 								fileInfo.append(line).append(System.lineSeparator());
 							}
 						}

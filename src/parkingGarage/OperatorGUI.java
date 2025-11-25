@@ -33,6 +33,7 @@ public class OperatorGUI implements Runnable {
 	// Operator data
 	// private Operator operator;
 	private int garageID;
+	private Report report;
 	OperatorGUILoginCB operatorLoginCallback;
 	OperatorGUIgetReportCB operatorGetReportCallback;
 	OperatorGUISearchTicketCB operatorGUISearchTicketCallback;
@@ -63,10 +64,12 @@ public class OperatorGUI implements Runnable {
 			OperatorGUISetRateCB operatorGUISetRateCallback) {
 
 		this.garageID = garageID;
+		this.report = null;
 		this.operatorLoginCallback = operatorLoginCallback;
 		this.operatorGetReportCallback = operatorGetReportCallback;
 		this.operatorGUISearchTicketCallback = operatorGUISearchTicketCallback;
 		this.operatorGUISetRateCallback = operatorGUISetRateCallback;
+
 	}
 
 	@Override
@@ -77,7 +80,7 @@ public class OperatorGUI implements Runnable {
 
 	// Creates and displays the main GUI window
 	private void createWindow() {
-		mainFrame = new JFrame("Parking Garage Operator GUI");
+		mainFrame = new JFrame("Parking Garage " + garageID + " Operator GUI");
 		mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		mainFrame.setSize(1200, 600);
 		mainFrame.setLocationRelativeTo(null);
@@ -275,7 +278,9 @@ public class OperatorGUI implements Runnable {
 	}
 
 	public void displayReport(Report report) {
+
 		if (report != null) {
+			this.report = report;
 			StringBuilder sb = new StringBuilder();
 			sb.append("Report for garage #").append(report.getGarageId()).append('\n');
 			sb.append("----------------------------------------------------\n");
@@ -300,6 +305,7 @@ public class OperatorGUI implements Runnable {
 			if (!licensePlate.equals("")) {
 				operatorGUISearchTicketCallback.run(licensePlate);
 			}
+			searchField.setText("");
 		});
 	}
 
