@@ -34,8 +34,8 @@ public class DriverGUI implements Runnable {
 	private int garageID;
 	private int GuiID;
 	private Ticket ticket;
-	private GUIgetUnpaidTicket getUnpaidCallback;
-	private GUIpaidTicket paidTicketCallback;
+	private DriverGUIgetUnpaidTicketCB getUnpaidCallback;
+	private DriverGUIpaidTicketCB paidTicketCallback;
 
 	private JButton leaveButton;
 	private JLabel durationLabel, plateLabel, feeLabel, welcomeText, question;
@@ -47,7 +47,8 @@ public class DriverGUI implements Runnable {
 	//this is used to store license plate from exit license plate reader
 	//BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
-	public DriverGUI(int garageID, GUIgetUnpaidTicket getUnpaidCallback, GUIpaidTicket paidTicketCallback) {
+	public DriverGUI(int garageID, DriverGUIgetUnpaidTicketCB getUnpaidCallback,
+			DriverGUIpaidTicketCB paidTicketCallback) {
 		this.gate = new Gate(garageID, Location.Exit);
 		this.garageID = garageID;
 		this.GuiID = ++count;
@@ -73,15 +74,12 @@ public class DriverGUI implements Runnable {
 	}
 
 	private void createWindow() {
-		String frameTitle = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
-		JFrame frame = new JFrame(frameTitle);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setLayout(new FlowLayout(FlowLayout.CENTER));
+		String name = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
+		JFrame frame = new JFrame(name);
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
 		createUI(frame);
-		
-		frame.setSize(400, 400);
-		
+		frame.setSize(1200, 300);
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}
@@ -176,9 +174,7 @@ public class DriverGUI implements Runnable {
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
 
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Open, Please Exit.");
-			question.setText("Thank you!");
-			leaveButton.setEnabled(false);
+			welcomeText.setText("Gate is Open, Please Exit. Thank you");
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();

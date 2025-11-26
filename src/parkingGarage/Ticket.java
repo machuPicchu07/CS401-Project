@@ -15,9 +15,21 @@ public class Ticket implements Serializable {
 	private LocalDateTime exitTime;
 	private Duration durationOfStay;
 	private int GuiID;
+	private double rate;
 
 	// Default Constructor
 	public Ticket() {
+	}
+
+	public Ticket(int garageID, double rate) {
+		this.licensePlate = "";
+		this.entryTime = null;
+		this.paid = false;
+		this.garageID = garageID;
+		this.fee = 0;
+		this.exitTime = null;
+		this.durationOfStay = null;
+		this.rate = rate;
 	}
 
 	// Parameterized Constructor using licensePlate and garageID (Programmer
@@ -30,6 +42,7 @@ public class Ticket implements Serializable {
 		this.fee = 0;
 		this.exitTime = null;
 		this.durationOfStay = null;
+		this.rate = 0;
 	}
 
 	// Parameterized Constructor using string from file read
@@ -54,13 +67,26 @@ public class Ticket implements Serializable {
 
 	// Function to calculate fee, rate passed in by the client
 	public void calculateFee(double ratePerS) {
+		this.rate = ratePerS;
 		setExitTime();
 		int s = (int) durationOfStay.getSeconds();
 		fee = s * ratePerS;
 	}
 
+	public double getRate() {
+		return rate;
+	}
+
+	public void setRate(double rate) {
+		this.rate = rate;
+	}
+
 	public double getFee() {
 		return fee;
+	}
+
+	public void setFee(double fee) {
+		this.fee = fee;
 	}
 
 	public void setGuiID(int id) {
@@ -83,12 +109,20 @@ public class Ticket implements Serializable {
 		return durationOfStay;
 	}
 
+	public void setDurationOfStay(Duration duration) {
+		this.durationOfStay = duration;
+	}
+
 	public boolean isTicketPaid() {
 		return paid;
 	}
 
 	public void setTicketPaid() {
 		paid = true;
+	}
+
+	public void setTicketPaid(boolean paid) {
+		this.paid = paid;
 	}
 
 	public void setLicensePlate(String licensePlate) {
@@ -104,8 +138,16 @@ public class Ticket implements Serializable {
 		this.entryTime = entryTime;
 	}
 
+	public void setExitTime(LocalDateTime exitTime) {
+		this.exitTime = exitTime;
+	}
+
 	public LocalDateTime getEntryTime() {
 		return entryTime;
+	}
+
+	public LocalDateTime getExitTime() {
+		return exitTime;
 	}
 
 	// Create a String from the information from the Ticket variables, using ',' as

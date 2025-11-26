@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 //Parking Garage Management System (PGMS)
 public class PGMS {
@@ -29,6 +31,11 @@ public class PGMS {
 	private static final List<List<Ticket>> UNPAIDTICKETS = new ArrayList<>();
 
 	private static int garageCount = 0;
+	static String numberOfGarageFileName = "numberOfGarage.txt";
+
+	private static final ConcurrentMap<Integer, ClientHandler> clientsByGarageId = new ConcurrentHashMap<>();
+	private final static Object fileLockHandler = new Object();
+	private static PGMSOwnerGUI ownerGUI;
 
 	// Program Main Section
 	public static void main(String[] args) {
@@ -37,20 +44,34 @@ public class PGMS {
 		ServerSocket server = null;
 
 		try {
+			checkGarages();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// Building a Server GUI for owner to operate;
+		PGMSOwnerGUISetRateCB setRateCallback = PGMS::getSetRateCallback;
+		GUISearchTicketCB GUISearchTicketCallback = PGMS::getSearchTicketCallback;
+		GUIgetReportCB ownerGetReportCallback = PGMS::getOwnerGetReportCallback;
+		ownerGUI = new PGMSOwnerGUI(garageCount, setRateCallback, GUISearchTicketCallback, ownerGetReportCallback);
+
+		ownerGUI.run();
+		// end of building Server GUI
+
+		try {
 			server = new ServerSocket(7777); // Run server on Socket 7777
 			server.setReuseAddress(true);
 
 			while (true) { // Run server perpetually
-
 				// Create a socket object 'client' equal to a connecting socket, wait (block)
 				// until a socket has connected
 				Socket client = server.accept();
 
 				// ClientHandler object created using the connected socket
 				ClientHandler clientSock = new ClientHandler(client);
-
 				// A thread is started using the ClientHandler object, handling the client
 				// separately
+
 				new Thread(clientSock).start();
 			}
 		} catch (IOException e) {
@@ -73,7 +94,9 @@ public class PGMS {
 		private int garageID;
 		boolean loggedIn = false;
 		private MsgTypes msgType;
-		private final Object fileLock = new Object();
+
+		private ObjectOutputStream out;
+		private ObjectInputStream in;
 
 		// Constructor
 		public ClientHandler(Socket socket) {
@@ -83,14 +106,14 @@ public class PGMS {
 		public void run() {
 			try {
 				// Create ObjectOutputStream from the OutPutStream
-				ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
-
+				out = new ObjectOutputStream(clientSocket.getOutputStream());
+				out.flush();
 				// Create ObjectInputStream from the InputStream
-				ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+				in = new ObjectInputStream(clientSocket.getInputStream());
 
 				// Create Message Object
 				Message inMsg;
-
+				Message outMsg;
 				// While the receiving Message is not null
 				while ((inMsg = (Message) in.readObject()) != null) {
 
@@ -104,12 +127,14 @@ public class PGMS {
 
 						} else if (msgType == MsgTypes.GARAGELOGIN) { // If garage existed
 							garageID = inMsg.getGarageID();
-							garageCount++;
 							loadGarage(garageID); // get the garageID and load tickets for garage
 						}
 						loggedIn = true; // Set this Garage to logged in
+
+						clientsByGarageId.put(garageID, this); // add the client to the clients hashmap
+
 						// Create new Message object with MsgType
-						Message outMsg = new Message(MsgTypes.SUCCESS, garageID);
+						outMsg = new Message(MsgTypes.SUCCESS, garageID);
 						out.writeObject(outMsg); // Send response to Client
 
 					} else {
@@ -122,8 +147,8 @@ public class PGMS {
 							addNewTicketToFile(inMsg);
 
 							// Response to Client
-							inMsg = new Message(MsgTypes.RECEIVED, garageID);
-							out.writeObject(inMsg);
+							outMsg = new Message(MsgTypes.RECEIVED, garageID);
+							out.writeObject(outMsg);
 							out.flush();
 							break;
 						}
@@ -132,26 +157,62 @@ public class PGMS {
 						// If ticket is found from the two dimensional array, send ticket 'reply' to
 						// client
 						case LOOKUPUNPAIDTICKET: {
+
 							Ticket ticket = lookUpUnpaidTicket(garageID, inMsg);
 							if (ticket != null) {
-								Message reply = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
-								reply.setTicket(ticket);
-								out.writeObject(reply);
+								outMsg = new Message(MsgTypes.LOOKUPUNPAIDTICKET, garageID);
+								outMsg.setTicket(ticket);
+								out.writeObject(outMsg);
 								out.flush();
 							}
-
-							break;
-						}
-						case GETREPORT: {
-							Message reply = new Message(MsgTypes.GETREPORT, garageID);
-							Operator operator = new Operator();
-							// Operator(String username, String password, Report report, int garageID)
 							break;
 						}
 						case TICKETPAID: {
 //							String str = inMsg.getTicket().toString();
 //							System.out.println(str);
 							ticketIsPaid(inMsg);
+							break;
+						}
+						case OPERATORLOGIN: {
+							if (isOperatorAuthenticated(inMsg)) {
+								outMsg = new Message(MsgTypes.OPERATORSUCCESS, garageID);
+								System.out.println("correct pw");
+								out.writeObject(outMsg);
+								out.flush();
+							} else {
+								outMsg = new Message(MsgTypes.OPERATORFAILURE, garageID);
+								System.out.println("wrong pw");
+								out.writeObject(outMsg);
+								out.flush();
+							}
+							break;
+
+						}
+						case GETREPORT: {
+							outMsg = new Message(MsgTypes.GETREPORT, garageID);
+							List<Ticket> source = PAIDTICKETS.get(garageID);
+							List<Ticket> copy;
+							synchronized (source) {
+								copy = new ArrayList<>(source); // shallow copy of the list
+							}
+
+							Report report = new Report(garageID, copy);
+
+							Operator operator = new Operator();
+							operator.setReport(report);
+							outMsg.setOperator(operator);
+							out.writeObject(outMsg);
+							out.flush();
+							System.out.println("sent report");
+							// Operator(String username, String password, Report report, int garageID)
+							break;
+						}
+						case SEARCHTICKET: {
+							Ticket ticket = searchTicket(inMsg.getTicket());
+							outMsg = new Message(MsgTypes.SEARCHTICKET, garageID);
+							outMsg.setTicket(ticket);
+							out.writeObject(outMsg);
+							out.flush();
 							break;
 						}
 						default:
@@ -174,15 +235,25 @@ public class PGMS {
 		}
 
 		// Function to Create a new Garage with a garage ID
-		private void createNewGarage(int garageID) {
+		private void createNewGarage(int garageID) throws IOException {
 
 			// Both UNPAIDTICKETS & PAIDTICKETS are instantiated and pushed into their
 			// respective Two-Dimensional array
-			List<Ticket> unPaidList = new ArrayList<Ticket>();
-			UNPAIDTICKETS.add(unPaidList); // first garage is on UNPAIDTICKETS[0];
-			List<Ticket> paidList = new ArrayList<Ticket>();
-			PAIDTICKETS.add(paidList);
 
+//			List<Ticket> unPaidList = new ArrayList<Ticket>();
+//			UNPAIDTICKETS.add(unPaidList); // first garage is on UNPAIDTICKETS[0];
+//			List<Ticket> paidList = new ArrayList<Ticket>();
+//			PAIDTICKETS.add(paidList);
+
+			// make sure the list exist
+			while (UNPAIDTICKETS.size() <= garageID)
+				UNPAIDTICKETS.add(null);
+			while (PAIDTICKETS.size() <= garageID)
+				PAIDTICKETS.add(null);
+			if (UNPAIDTICKETS.get(garageID) == null)
+				UNPAIDTICKETS.set(garageID, new ArrayList<>());
+			if (PAIDTICKETS.get(garageID) == null)
+				PAIDTICKETS.set(garageID, new ArrayList<>());
 			// Format text file name
 			String fileNamePaid = "garage#" + Integer.toString(garageID) + "_paid.txt";
 			String fileNameUnpaid = "garage#" + Integer.toString(garageID) + "_unpaid.txt";
@@ -191,14 +262,19 @@ public class PGMS {
 			try (FileWriter writerPaid = new FileWriter(fileNamePaid, true);
 					FileWriter writerUnpaid = new FileWriter(fileNameUnpaid, true)) {
 				System.out.println("Created New Garage # " + garageID);
-			} catch (IOException e) {
-				e.printStackTrace();
+			}
+
+			// save total number of garages on server
+			synchronized (fileLockHandler) {
+				try (FileWriter writer = new FileWriter(numberOfGarageFileName)) {
+					writer.write(String.valueOf(garageCount));
+				}
 			}
 		}
 
 		// Adds new Ticket to file
 		private void addNewTicketToFile(Message inMsg) throws IOException {
-			synchronized (fileLock) {
+			synchronized (fileLockHandler) {
 				UNPAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to UNPAIDTICKETS 2d array
 				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt"; // Find appropriate file name
 				try (FileWriter writer = new FileWriter(fileNameUnpaid, true)) { // Opens file
@@ -218,17 +294,38 @@ public class PGMS {
 				Random random = new Random(); // Create a random object
 				int index = random.nextInt(tickets.size());
 				ticket = tickets.get(index); // Grab random ticket to send to client
-				tickets.remove(index);
-
 				copy = new Ticket();
+				copy.setGarageID(garageID);
 				copy.setGuiID(inMsg.getTicket().getGuiID());
 				copy.setLicensePlate(ticket.getLicensePlate());
 				copy.setEntryTime(ticket.getEntryTime());
 			}
 
+			return copy; // return random ticket to client
+		}
+
+		private void ticketIsPaid(Message inMsg) throws IOException {
+
+			Ticket ticket = inMsg.getTicket();
+			PAIDTICKETS.get(garageID).add(ticket); // Add ticket to PAIDTICKETS 2d array
+			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
+
+			synchronized (fileLockHandler) {
+				try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
+					writer.write(ticket.toString()); // Writes to file Ticket information
+				}
+			}
+
+			// remove the ticket from unpaid ticket txt and list
 			if (ticket != null) {
+				List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
+				for (int i = 0; i < tickets.size(); i++) {
+					if (tickets.get(i).getLicensePlate().equals(ticket.getLicensePlate())) {
+						tickets.remove(i);
+					}
+				}
 				String fileNameUnpaid = "garage#" + garageID + "_unpaid.txt";
-				synchronized (fileLock) {
+				synchronized (fileLockHandler) {
 					StringBuilder fileInfo = new StringBuilder();
 
 					try (BufferedReader reader = new BufferedReader(new FileReader(fileNameUnpaid))) {
@@ -236,7 +333,7 @@ public class PGMS {
 						while ((line = reader.readLine()) != null) {
 							Ticket fileTicket = new Ticket(line);
 							if (!fileTicket.getLicensePlate().equals(ticket.getLicensePlate())) {
-								// i need to remove the "line" from the txt file.
+								// i need to remove the "line(ticket)" from the txt file.
 								fileInfo.append(line).append(System.lineSeparator());
 							}
 						}
@@ -245,16 +342,6 @@ public class PGMS {
 						writer.write(fileInfo.toString()); // Writes to file Ticket information
 					}
 				}
-			}
-
-			return copy; // return random ticket to client
-		}
-
-		private void ticketIsPaid(Message inMsg) throws IOException {
-			PAIDTICKETS.get(garageID).add(inMsg.getTicket()); // Add ticket to PAIDTICKETS 2d array
-			String fileNamePaid = "garage#" + garageID + "_paid.txt"; // Find appropriate file name
-			try (FileWriter writer = new FileWriter(fileNamePaid, true)) { // Opens file
-				writer.write(inMsg.getTicket().toString()); // Writes to file Ticket information
 			}
 		}
 
@@ -270,23 +357,27 @@ public class PGMS {
 
 			// read ticket from file and add it list;
 			File file = new File(fileNamePaid);
-			try (Scanner scanner = new Scanner(file)) {
-				while (scanner.hasNextLine()) {
-					String line = scanner.nextLine().trim();
-					Ticket ticket = new Ticket(line);
-					paidList.add(ticket);
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+						paidList.add(ticket);
+					}
 				}
 			}
 
 			file = new File(fileNameUnpaid);
-			try (Scanner scanner = new Scanner(file)) {
-				while (scanner.hasNextLine()) {
-					String line = scanner.nextLine().trim();
-					Ticket ticket = new Ticket(line);
-					unPaidList.add(ticket);
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+						unPaidList.add(ticket);
+					}
 				}
 			}
-
+			// set it to null in case its empty;
 			while (UNPAIDTICKETS.size() <= garageID)
 				UNPAIDTICKETS.add(null);
 			while (PAIDTICKETS.size() <= garageID)
@@ -295,14 +386,176 @@ public class PGMS {
 			UNPAIDTICKETS.set(garageID, unPaidList);
 			PAIDTICKETS.set(garageID, paidList);
 
-			System.out.println("garage# " + garageID + " unpaid tickets:");
-			for (Ticket t : unPaidList)
-				System.out.println(t);
-
-			System.out.println("garage# " + garageID + " paid tickets:");
-			for (Ticket t : paidList)
-				System.out.println(t);
 		}
+
+		// check if Operator username and pw exist when client's operator want to log in
+		private boolean isOperatorAuthenticated(Message inMsg) throws FileNotFoundException, IOException {
+			String operatorUsername = inMsg.getOperator().getUsername();
+			String operatorPw = inMsg.getOperator().getPassword();
+			try (BufferedReader reader = new BufferedReader(new FileReader("username_pw.txt"))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					String[] parts = line.split(",");
+					if (operatorUsername.equals(parts[0]) && operatorPw.equals(parts[1])) {
+						return true;
+					}
+
+				}
+			}
+			return false;
+		}
+
+		// Operator search ticket, PGMS pull and send ticket back to client
+		public Ticket searchTicket(Ticket targetTicket) {
+			Ticket ticket = targetTicket;
+			List<Ticket> tickets = UNPAIDTICKETS.get(garageID);
+			for (Ticket t : tickets) {
+				if (t.getLicensePlate().equals(ticket.getLicensePlate())) {
+					return copyTicket(t);
+				}
+			}
+			tickets = PAIDTICKETS.get(garageID);
+			for (Ticket t : tickets) {
+				if (t.getLicensePlate().equals(ticket.getLicensePlate())) {
+					return copyTicket(t);
+				}
+			}
+			return ticket;
+		}
+
+		// deep copy ticket;
+		private Ticket copyTicket(Ticket original) {
+			Ticket copy = new Ticket();
+			copy.setGarageID(original.getGarageID());
+			copy.setLicensePlate(original.getLicensePlate());
+			copy.setEntryTime(original.getEntryTime());
+			copy.setExitTime(original.getExitTime());
+			copy.setTicketPaid(original.isTicketPaid());
+			copy.setGuiID(original.getGuiID());
+			copy.setFee(original.getFee());
+			copy.setDurationOfStay(original.getDurationOfStay());
+			// copy.calculateFee(original.getFee());
+			// etc — copy all needed fields
+			return copy;
+		}
+
+		public void send(Message msg) throws IOException {
+			synchronized (out) { // ensure only one thread writes at a time
+				try {
+					out.writeObject(msg);
+					out.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	private static void checkGarages() throws IOException {
+		// check if the server is running the first time.
+		// if its running the first time, create the file and save it.
+		// otherwise load the total of garage from file to garageCount;
+		File file = new File(numberOfGarageFileName);
+		if (file.exists()) {
+			String garageNumber;
+			try (Scanner scanner = new Scanner(file)) {
+				garageNumber = scanner.nextLine().trim();
+				garageCount = Integer.parseInt(garageNumber);
+			}
+		} else {
+			try (FileWriter writer = new FileWriter(numberOfGarageFileName, true)) {
+				writer.write(String.valueOf(garageCount));
+			}
+		}
+	}
+
+	// ============ PGMS OwnerGUI callback functions ===================
+	public static boolean getSetRateCallback(int garageID, double rate) {
+		try {
+			ClientHandler handler = clientsByGarageId.get(garageID);
+			if (handler == null) {
+				System.out.println("Garage " + garageID + " not connected.");
+				return false;
+			}
+
+			Message msg = new Message(MsgTypes.SETRATE, garageID);
+
+			// Use a dedicated object instead of misusing Ticket for rate data
+			Ticket ticket = new Ticket(garageID, rate);
+			msg.setTicket(ticket);
+
+			handler.send(msg);
+			return true;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public static Ticket getSearchTicketCallback(String licensePlate) {
+		for (int i = 0; i < garageCount; i++) {
+
+			String fileNamePaid = "garage#" + Integer.toString(i) + "_paid.txt";
+			String fileNameUnpaid = "garage#" + Integer.toString(i) + "_unpaid.txt";
+			// set entry time to null to show this ticket is not a regular ticket
+			File file = new File(fileNamePaid);
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+						if (ticket.getLicensePlate().equals(licensePlate)) {
+							return ticket;
+						}
+					}
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+
+			file = new File(fileNameUnpaid);
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+						if (ticket.getLicensePlate().equals(licensePlate)) {
+							return ticket;
+						}
+					}
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
+		return null;
+	};
+
+	public static Report getOwnerGetReportCallback(int garageID) {
+		String fileNamePaid = "garage#" + Integer.toString(garageID) + "_paid.txt";
+
+		File file = new File(fileNamePaid);
+		Report report = null;
+		if (file.exists()) {
+			List<Ticket> paidList = new ArrayList<Ticket>();
+
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+						paidList.add(ticket);
+					}
+					report = new Report(garageID, paidList);
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return report;
 	}
 
 }
