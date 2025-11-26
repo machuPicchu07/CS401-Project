@@ -152,7 +152,11 @@ public class DriverGUI implements Runnable {
 		// frame.getContentPane().add(new JScrollPane(logArea), BorderLayout.CENTER);
 	}
 
-	/** Safe to call from ANY thread. */
+	
+	/* ASYNCH FUNCTION
+	 * Safe to call from ANY thread. 
+	 * Pulls info from ticket, set that information onto labels & buttons if it exists. 
+	 */
 	public void showUnpaidTicket(Ticket t) {
 		SwingUtilities.invokeLater(() -> {
 			this.ticket = t;
@@ -174,13 +178,15 @@ public class DriverGUI implements Runnable {
 		});
 	}
 
+	
+	//Allows the payment processor to use a Credit Card object to determine if payment is authorized
 	public void payButtonClicked() {
-		CreditCard creditCard = new CreditCard();
-		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
+		//CreditCard creditCard = new CreditCard();
+		PaymentCollector paymentCollector = new PaymentCollector(new CreditCard());
 
 		if (paymentCollector.validatePayment()) {
 			welcomeText.setText("Gate is Open, Please Exit.");
-			question.setText("Thank you!");
+			question.setText("Thank you for visiting!");
 			leaveButton.setEnabled(false);
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
@@ -192,17 +198,21 @@ public class DriverGUI implements Runnable {
 			thread.start();
 			paidTicketCallback.run(GuiID, ticket);
 		} else {
-			welcomeText.setText("Invalid credit card, Please Pay again.");
+			welcomeText.setText("Invalid credit card!");
+			question.setText("Please try paying again.");
 			payButton.setEnabled(true);
+			leaveButton.setEnabled(false);
 		}
 
 	}
 
+	//Resets text for labels & buttons, resets buttons
 	public void resetGUI() {
 		durationLabel.setText("-");
 		plateLabel.setText("-");
 		feeLabel.setText("-");
-		welcomeText.setText("Thanks for staying. Are you leaving?");
+		welcomeText.setText("Thanks for staying!");
+		question.setText("Ready to leave?");
 		// appendLine("Received unpaid ticket: " + t);
 		payButton.setEnabled(false);
 		leaveButton.setEnabled(true);
