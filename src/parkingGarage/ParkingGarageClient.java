@@ -23,7 +23,7 @@ public class ParkingGarageClient {
 	private static DriverGUI driverGUI1;
 	private static DriverGUI driverGUI2;
 	private static OperatorGUI operatorGUI;
-	private static volatile double ratePerSecond = 0.01;
+	private static volatile double ratePerSecond = 0.001;
 	private static String garageIDFileName = "garageId.txt";
 	private static String garageRateFileName = "garageRate.txt";
 
