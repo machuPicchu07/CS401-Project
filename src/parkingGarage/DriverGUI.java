@@ -74,12 +74,13 @@ public class DriverGUI implements Runnable {
 	}
 
 	private void createWindow() {
-		String name = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
-		JFrame frame = new JFrame(name);
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		String frameTitle = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
+		JFrame frame = new JFrame(frameTitle);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setLayout(new FlowLayout(FlowLayout.CENTER));
 
 		createUI(frame);
-		frame.setSize(1200, 300);
+		frame.setSize(400, 400);
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}
@@ -174,7 +175,9 @@ public class DriverGUI implements Runnable {
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
 
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Open, Please Exit. Thank you");
+			welcomeText.setText("Gate is Open, Please Exit.");
+			question.setText("Thank you!");
+			leaveButton.setEnabled(false);
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();
