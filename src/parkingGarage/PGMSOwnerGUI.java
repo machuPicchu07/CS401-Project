@@ -8,6 +8,9 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -23,19 +26,17 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-public class OperatorGUI implements Runnable {
+public class PGMSOwnerGUI implements Runnable {
 
 	// private boolean isConnected = false;
 	private boolean isLoggedIn = false;
-
-	// Operator data
-	// private Operator operator;
-	private int garageID;
+	private final Object fileLockHandler = new Object();
+	private String ownerPwFileName = "owner_pw.txt";
+	private int totalGarages;
 	private Report reportForSaving;
-	OperatorGUILoginCB operatorLoginCallback;
-	GUIgetReportCB operatorGetReportCallback;
-	GUISearchTicketCB operatorGUISearchTicketCallback;
-	OperatorGUISetRateCB operatorGUISetRateCallback;
+	PGMSOwnerGUISetRateCB setRateCallback;
+	GUISearchTicketCB GUISearchTicketCallback;
+	GUIgetReportCB ownerGetReportCallback;
 	// GUI components
 	private JFrame mainFrame;
 	private JPanel loginPanel;
@@ -52,21 +53,19 @@ public class OperatorGUI implements Runnable {
 	private JButton getReportButton;
 
 	private JButton searchButton;
+	private JTextField garageNumSearchField;
 	private JTextField searchField;
 	private JTextArea displayArea;
 	private JButton setRateButton;
 	private JTextField inputRateField;
+	private JTextField inputRateForGarage;
 
-	public OperatorGUI(int garageID, OperatorGUILoginCB operatorLoginCallback, GUIgetReportCB operatorGetReportCallback,
-			GUISearchTicketCB operatorGUISearchTicketCallback, OperatorGUISetRateCB operatorGUISetRateCallback) {
-
-		this.garageID = garageID;
-		this.reportForSaving = null;
-		this.operatorLoginCallback = operatorLoginCallback;
-		this.operatorGetReportCallback = operatorGetReportCallback;
-		this.operatorGUISearchTicketCallback = operatorGUISearchTicketCallback;
-		this.operatorGUISetRateCallback = operatorGUISetRateCallback;
-
+	public PGMSOwnerGUI(int totalGarages, PGMSOwnerGUISetRateCB setRateCallback,
+			GUISearchTicketCB GUISearchTicketCallback, GUIgetReportCB ownerGetReportCallback) {
+		this.totalGarages = totalGarages;
+		this.setRateCallback = setRateCallback;
+		this.GUISearchTicketCallback = GUISearchTicketCallback;
+		this.ownerGetReportCallback = ownerGetReportCallback;
 	}
 
 	@Override
@@ -77,7 +76,7 @@ public class OperatorGUI implements Runnable {
 
 	// Creates and displays the main GUI window
 	private void createWindow() {
-		mainFrame = new JFrame("Parking Garage " + garageID + " Operator GUI");
+		mainFrame = new JFrame("Owner of PGMS GUI");
 		mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		mainFrame.setSize(1200, 600);
 		mainFrame.setLocationRelativeTo(null);
@@ -144,10 +143,6 @@ public class OperatorGUI implements Runnable {
 	}
 
 	// Creates the operator dashboard panel
-	// Button: GetReport
-	// License Plate:
-	// Button: Search
-
 	private void createDashboardPanel() {
 		dashboardPanel = new JPanel(new BorderLayout(10, 10));
 		dashboardPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
@@ -159,6 +154,11 @@ public class OperatorGUI implements Runnable {
 
 		// GetReport button
 		JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		reportButtonPanel.add(new JLabel("Enter Garage #: "));
+		garageNumSearchField = new JTextField(10);
+		garageNumSearchField.setFont(new Font("Arial", Font.PLAIN, 14));
+		reportButtonPanel.add(garageNumSearchField);
+
 		getReportButton = new JButton("GetReport");
 		getReportButton.setFont(new Font("Arial", Font.BOLD, 14));
 		getReportButton.addActionListener(e -> getReport());
@@ -178,7 +178,7 @@ public class OperatorGUI implements Runnable {
 		// Search panel
 		JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		searchPanel.add(new JLabel("License Plate:"));
-		searchField = new JTextField(15);
+		searchField = new JTextField(10);
 		searchField.setFont(new Font("Arial", Font.PLAIN, 14));
 		searchPanel.add(searchField);
 
@@ -190,10 +190,14 @@ public class OperatorGUI implements Runnable {
 
 		// Set rate panel
 		JPanel setRatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		setRatePanel.add(new JLabel("Enter New Rate Per Second: "));
-		inputRateField = new JTextField(15);
+		setRatePanel.add(new JLabel("Enter New Rate Per Seconds: "));
+		inputRateField = new JTextField(8);
 		inputRateField.setFont(new Font("Arial", Font.PLAIN, 14));
 		setRatePanel.add(inputRateField);
+		setRatePanel.add(new JLabel("For Garage #: "));
+		inputRateForGarage = new JTextField(8);
+		inputRateForGarage.setFont(new Font("Arial", Font.PLAIN, 14));
+		setRatePanel.add(inputRateForGarage);
 
 		setRateButton = new JButton(" Set  ");
 		setRateButton.setFont(new Font("Arial", Font.BOLD, 14));
@@ -213,15 +217,28 @@ public class OperatorGUI implements Runnable {
 	}
 
 	private void login() {
-		// get operator log in username/pw from GUI
+		// get Owner log in username/pw from GUI
 		String username = usernameField.getText().trim();
 		String pw = new String(passwordField.getPassword());
 		statusLabel.setText("");
-		// call the callback function from ParkingGarage
-		operatorLoginCallback.run(username, pw);
+		File file = new File(ownerPwFileName);
+		try (Scanner scanner = new Scanner(file)) {
+			while (scanner.hasNextLine()) {
+				String line = scanner.nextLine().trim();
+				String[] parts = line.split(",");
+				if (username.equals(parts[0]) && pw.equals(parts[1])) {
+					loggedInSuccess();
+				}
+			}
+			loggedInFail();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+//		loggedInSuccess();
 
 	}
 
+	// logout owner
 	private void logout() {
 		SwingUtilities.invokeLater(() -> {
 			displayArea.setText("");
@@ -252,39 +269,76 @@ public class OperatorGUI implements Runnable {
 		});
 	}
 
+	// set rate for specific garage
 	private void setRate() {
 		SwingUtilities.invokeLater(() -> {
 			String inputRate = inputRateField.getText().trim();
-			double rate = Double.parseDouble(inputRate);
-			if (rate > 0 && rate < 10) {
-				operatorGUISetRateCallback.run(rate);
+			String garageNumber = inputRateForGarage.getText().trim();
+			if (inputRate.isEmpty() || garageNumber.isEmpty()) {
+				JOptionPane.showMessageDialog(null, "Please enter both a rate and a garage number.", "Missing input",
+						JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+			double rate;
+			int garageID;
+			try {
+				rate = Double.parseDouble(inputRate);
+				garageID = Integer.parseInt(garageNumber);
+			} catch (NumberFormatException ex) {
+				JOptionPane.showMessageDialog(null, "Input must be number or decimals", "Invalid input",
+						JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+			if (rate > 0 && rate < 10 && garageID < totalGarages) {
 				inputRateField.setText("");
-				JOptionPane.showMessageDialog(null, "New parking rate have been set to $" + rate + " per second",
-						"Success", JOptionPane.INFORMATION_MESSAGE);
+				inputRateForGarage.setText("");
+				boolean isSetRateSuccess = setRateCallback.run(garageID, rate);
+				if (isSetRateSuccess) {
+					JOptionPane.showMessageDialog(null,
+							"New parking rate have been set to $" + rate + " per second for Garage #" + garageID,
+							"Success", JOptionPane.INFORMATION_MESSAGE);
+				} else {
+					JOptionPane.showMessageDialog(null,
+							"Failed to send rate update. Garage may be offline or disconnected.", "Send error",
+							JOptionPane.INFORMATION_MESSAGE);
+				}
+
 			} else {
 				inputRateField.setText("");
-				JOptionPane.showMessageDialog(null, "rate must be between 0 and $10 per second", "Invalid input",
+				inputRateForGarage.setText("");
+				JOptionPane.showMessageDialog(null, "Invalid rate or Invalid Garage number", "Invalid input",
 						JOptionPane.INFORMATION_MESSAGE);
 			}
 
 		});
 	}
 
+	// get report for specific garage
 	private void getReport() {
-		operatorGetReportCallback.run(garageID);
+		String garageNumber = garageNumSearchField.getText().trim();
+		int garageID;
+		try {
+			garageID = Integer.parseInt(garageNumber);
+		} catch (NumberFormatException ex) {
+			JOptionPane.showMessageDialog(null, "Garage must be integer", "Invalid input",
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		// callback function
+		Report report = ownerGetReportCallback.run(garageID);
+		displayReport(report);
 	}
 
 	public void displayReport(Report report) {
 		SwingUtilities.invokeLater(() -> {
+			garageNumSearchField.setText("");
 			if (report != null) {
 				this.reportForSaving = report;
 				// use ReportFormatter to format the report
 				String text = ReportFormatter.formatReport(report);
 				displayArea.setText(text);
-
 			} else {
 				displayArea.setText("No report found");
-
 			}
 			displayArea.setCaretPosition(0);
 		});
@@ -295,27 +349,21 @@ public class OperatorGUI implements Runnable {
 		SwingUtilities.invokeLater(() -> {
 			String licensePlate = searchField.getText().trim().toUpperCase();
 			if (!licensePlate.equals("")) {
-				operatorGUISearchTicketCallback.run(licensePlate);
+				// call the callback function
+				Ticket ticket = GUISearchTicketCallback.run(licensePlate);
+				if (ticket == null) {
+
+					displayArea.setText(licensePlate + " is not found");
+					displayArea.setCaretPosition(0);
+				} else {
+					// use ReportFormatter to format the ticket
+					String text = ReportFormatter.formatTicket(ticket);
+					displayArea.setText(text);
+					displayArea.setCaretPosition(0);
+				}
 			}
 			searchField.setText("");
 		});
-	}
-
-	public void displayTicket(Ticket ticket) {
-
-		SwingUtilities.invokeLater(() -> {
-			if (ticket.getEntryTime() == null) {
-				// that means this ticket not found;
-				displayArea.setText(ticket.getLicensePlate() + " is not found");
-				displayArea.setCaretPosition(0);
-			} else {
-				// use ReportFormatter to format the ticket
-				String text = ReportFormatter.formatTicket(ticket);
-				displayArea.setText(text);
-				displayArea.setCaretPosition(0);
-			}
-		});
-
 	}
 
 }

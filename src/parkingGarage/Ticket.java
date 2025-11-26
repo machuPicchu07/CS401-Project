@@ -15,9 +15,21 @@ public class Ticket implements Serializable {
 	private LocalDateTime exitTime;
 	private Duration durationOfStay;
 	private int GuiID;
+	private double rate;
 
 	// Default Constructor
 	public Ticket() {
+	}
+
+	public Ticket(int garageID, double rate) {
+		this.licensePlate = "";
+		this.entryTime = null;
+		this.paid = false;
+		this.garageID = garageID;
+		this.fee = 0;
+		this.exitTime = null;
+		this.durationOfStay = null;
+		this.rate = rate;
 	}
 
 	// Parameterized Constructor using licensePlate and garageID (Programmer
@@ -30,6 +42,7 @@ public class Ticket implements Serializable {
 		this.fee = 0;
 		this.exitTime = null;
 		this.durationOfStay = null;
+		this.rate = 0;
 	}
 
 	// Parameterized Constructor using string from file read
@@ -54,9 +67,18 @@ public class Ticket implements Serializable {
 
 	// Function to calculate fee, rate passed in by the client
 	public void calculateFee(double ratePerS) {
+		this.rate = ratePerS;
 		setExitTime();
 		int s = (int) durationOfStay.getSeconds();
 		fee = s * ratePerS;
+	}
+
+	public double getRate() {
+		return rate;
+	}
+
+	public void setRate(double rate) {
+		this.rate = rate;
 	}
 
 	public double getFee() {

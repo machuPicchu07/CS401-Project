@@ -24,6 +24,8 @@ public class ParkingGarageClient {
 	private static DriverGUI driverGUI2;
 	private static OperatorGUI operatorGUI;
 	private static volatile double ratePerSecond = 0.01;
+	private static String garageIDFileName = "garageId.txt";
+	private static String garageRateFileName = "garageRate.txt";
 
 	// Program Main Section
 	public static void main(String[] args) {
@@ -32,8 +34,7 @@ public class ParkingGarageClient {
 		int assignedID = -1; // Garage ID assigned by the server
 		boolean loggedIn = false; // Indication of successful connection with Server
 		// double initialRate = 0.25; // Rate per second to calculate fee
-		String garageIDFileName = "garageId.txt";
-		String garageRateFileName = "garageRate.txt";
+
 		// A thread safe queue (Linked Blocking Queue) that will store license plates
 		BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
@@ -160,6 +161,10 @@ public class ParkingGarageClient {
 							operatorGUI.loggedInSuccess();
 							break;
 						}
+						case SETRATE: {
+							setRate(msg);
+							break;
+						}
 						case OPERATORFAILURE: {
 							// if operator logged in successfully
 							operatorGUI.loggedInFail();
@@ -203,7 +208,7 @@ public class ParkingGarageClient {
 					// GarageID
 					Ticket ticket = new Ticket(); // New Ticket object
 					ticket.setGarageID(garageID);
-					System.out.println(garageID);
+
 					ticket.setGuiID(GuiID); // Set the Ticket's GuiID with the callback function's GuiID
 					// System.out.println(GuiID);
 					msg.setTicket(ticket); // Assign the Ticket object to the Message
@@ -257,7 +262,7 @@ public class ParkingGarageClient {
 				}
 			};
 
-			OperatorGUIgetReportCB operatorGetReportCallback = () -> {
+			GUIgetReportCB operatorGetReportCallback = (int garageId) -> {
 				try {
 					Message msg = new Message(MsgTypes.GETREPORT, garageID);
 					out.writeObject(msg);
@@ -266,9 +271,10 @@ public class ParkingGarageClient {
 					e.printStackTrace();
 
 				}
+				return null;
 			};
 
-			OperatorGUISearchTicketCB operatorGUISearchTicketCallback = (String licensePlate) -> {
+			GUISearchTicketCB operatorGUISearchTicketCallback = (String licensePlate) -> {
 				try {
 					Message msg = new Message(MsgTypes.SEARCHTICKET, garageID);
 					Ticket ticket = new Ticket(licensePlate, garageID);
@@ -280,6 +286,7 @@ public class ParkingGarageClient {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+				return null;
 			};
 
 			OperatorGUISetRateCB operatorGUISetRateCallback = (double rate) -> {
@@ -307,4 +314,12 @@ public class ParkingGarageClient {
 
 	}
 
+	private static void setRate(Message msg) {
+		ratePerSecond = msg.getTicket().getRate();
+		try (FileWriter writer = new FileWriter(garageRateFileName)) { // Opens file
+			writer.write(String.valueOf(ratePerSecond));// Writes to assignedID to file
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
