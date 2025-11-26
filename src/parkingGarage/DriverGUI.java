@@ -1,41 +1,57 @@
 package parkingGarage;
 
-import java.awt.BorderLayout;
+//java.util
+//import java.util.concurrent.BlockingQueue;
+//import java.util.concurrent.LinkedBlockingQueue;
+
+//java.awt
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
+//javax.swing
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+
+/*Upon Class Instantiation
+ * Create Window
+ * Create UI
+ 	*Create Panel
+ 	*Add buttons, labels, etc.
+ 		*Determine functionality of buttons, labels, etc.
+*/
 public class DriverGUI implements Runnable {
 
 	private static int count = 0;
 	private Gate gate;
-	private LicensePlateReader LPR;
 	private int garageID;
 	private int GuiID;
 	private Ticket ticket;
 	private GUIgetUnpaidTicket getUnpaidCallback;
 	private GUIpaidTicket paidTicketCallback;
 
-//	private JFrame frame;
 	private JButton leaveButton;
-	private JLabel durationLabel, plateLabel, feeLabel, welcomeText;
+	private JLabel durationLabel, plateLabel, feeLabel, welcomeText, question;
 	private JButton payButton;
-	// this is used to store license plate from exit license plate reader
-	BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
+	
+		//Currently Unused
+	//private LicensePlateReader LPR;
+	//private JFrame frame;
+	//this is used to store license plate from exit license plate reader
+	//BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
 	public DriverGUI(int garageID, GUIgetUnpaidTicket getUnpaidCallback, GUIpaidTicket paidTicketCallback) {
 		this.gate = new Gate(garageID, Location.Exit);
 		this.garageID = garageID;
 		this.GuiID = ++count;
-		this.LPR = new LicensePlateReader(garageID, Location.Exit, queue);
+		//this.LPR = new LicensePlateReader(garageID, Location.Exit, queue);
 		this.ticket = null;
 		this.getUnpaidCallback = getUnpaidCallback;
 		this.paidTicketCallback = paidTicketCallback;
@@ -49,6 +65,7 @@ public class DriverGUI implements Runnable {
 		return GuiID;
 	}
 
+
 	@Override
 	public void run() {
 		SwingUtilities.invokeLater(this::createWindow);
@@ -56,41 +73,65 @@ public class DriverGUI implements Runnable {
 	}
 
 	private void createWindow() {
-		String name = "Garage ID #" + garageID + ", GUI #" + GuiID;
-		JFrame frame = new JFrame(name);
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		String frameTitle = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
+		JFrame frame = new JFrame(frameTitle);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setLayout(new FlowLayout(FlowLayout.CENTER));
 
 		createUI(frame);
-		frame.setSize(1000, 300);
+		
+		frame.setSize(400, 400);
+		
 		frame.setLocationRelativeTo(null); // Center on screen
 		frame.setVisible(true); // make visible
 	}
 
 	private void createUI(final JFrame frame) {
 		JPanel panel = new JPanel();
-		LayoutManager layout = new FlowLayout(FlowLayout.LEFT, 10, 10);
+		LayoutManager layout = new BoxLayout(panel,BoxLayout.Y_AXIS);
 		panel.setLayout(layout);
 
-		welcomeText = new JLabel("Thanks for staying. Are you leaving?");
+		welcomeText = new JLabel("Thanks for staying!");
+		question = new JLabel("Ready to leave?");
 		leaveButton = new JButton("Yes (Get Unpaid Ticket)");
-		payButton = new JButton("pay");
+		payButton = new JButton("Pay");
 		payButton.setEnabled(false);
-		// result section
-		JPanel result = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-		result.add(new JLabel("Duration of Stay:"));
-		durationLabel = new JLabel("-");
-		result.add(durationLabel);
-
-		result.add(new JLabel("License Plate:"));
+		
+		
+		//===ORGANIZATION OF BUTTONS AND LABELS IN PANEL
+		panel.add(Box.createRigidArea(new Dimension(0,20)));
+		panel.add(welcomeText);
+		panel.add(Box.createRigidArea(new Dimension(0,10)));
+		panel.add(question);
+		panel.add(Box.createRigidArea(new Dimension(0,20)));
+		panel.add(leaveButton);
+		panel.add(Box.createRigidArea(new Dimension(0,30)));
+		
+		//License Plate
+		panel.add(new JLabel("License Plate:"));
 		plateLabel = new JLabel("-");
-		result.add(plateLabel);
+		panel.add(plateLabel);
+		panel.add(Box.createRigidArea(new Dimension(0,10)));
+		
+		//Duration of Stay
+		panel.add(new JLabel("Duration of Stay:"));
+		durationLabel = new JLabel("-");
+		panel.add(durationLabel);
+		panel.add(Box.createRigidArea(new Dimension(0,10)));
 
-		result.add(new JLabel("Amount Due:"));
+
+		//Amount Due
+		panel.add(new JLabel("Amount Due:"));
 		feeLabel = new JLabel("-");
-		result.add(feeLabel);
-//		logArea = new JTextArea(7, 48);
-//		logArea.setEditable(false);
+		panel.add(feeLabel);
+		panel.add(Box.createRigidArea(new Dimension(0,30)));
+		
+		panel.add(payButton);
 
+		frame.add(panel);
+		//===END OF ORGANIZATION OF BUTTONS AND LABELS IN PANEL
+		
+		
 		payButton.addActionListener((ActionEvent e) -> {
 			payButtonClicked();
 		});
@@ -99,16 +140,12 @@ public class DriverGUI implements Runnable {
 			getUnpaidCallback.run(GuiID); // triggers client to send GET_UNPAID
 		});
 
-		panel.add(welcomeText);
-		panel.add(leaveButton);
-		panel.add(result);
-		panel.add(payButton);
 
-//		result.add(durationLabel);
-//		result.add(plateLabel);
-//		result.add(feeLabel);
-		frame.getContentPane().setLayout(new BorderLayout(8, 8));
-		frame.getContentPane().add(panel, BorderLayout.NORTH);
+		//result.add(durationLabel);
+		//result.add(plateLabel);
+		//result.add(feeLabel);
+		//frame.getContentPane().setLayout(new BorderLayout(8, 8));
+		//frame.getContentPane().add(panel, BorderLayout.NORTH);
 		// frame.getContentPane().add(new JScrollPane(logArea), BorderLayout.CENTER);
 	}
 
@@ -139,7 +176,9 @@ public class DriverGUI implements Runnable {
 		PaymentCollector paymentCollector = new PaymentCollector(creditCard);
 
 		if (paymentCollector.validatePayment()) {
-			welcomeText.setText("Gate is Open, Thank you");
+			welcomeText.setText("Gate is Open, Please Exit.");
+			question.setText("Thank you!");
+			leaveButton.setEnabled(false);
 			payButton.setEnabled(false);
 			Thread thread = new Thread(() -> {
 				gate.openGate();
@@ -163,6 +202,7 @@ public class DriverGUI implements Runnable {
 		welcomeText.setText("Thanks for staying. Are you leaving?");
 		// appendLine("Received unpaid ticket: " + t);
 		payButton.setEnabled(false);
+		leaveButton.setEnabled(true);
 	}
 
 }
