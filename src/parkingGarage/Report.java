@@ -1,9 +1,13 @@
 package parkingGarage;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class Report implements Serializable {
 
@@ -33,6 +37,41 @@ public class Report implements Serializable {
 		calculateTotalFee();
 	}
 
+	// use this constructor to load report from file
+	public Report(String fileName) {
+		File file = new File(fileName);
+
+		if (file.exists()) {
+			try (Scanner scanner = new Scanner(file)) {
+				// Parse header line
+				String header = scanner.nextLine().trim();
+				String[] parts = header.split(",");
+
+				this.garageID = Integer.parseInt(parts[0]);
+				this.avgStayTime = Integer.parseInt(parts[1]);
+				this.totalFee = Double.parseDouble(parts[2]);
+				this.creationDate = LocalDate.parse(parts[3]);
+
+				// Parse ticket lines
+				this.tickets = new ArrayList<>();
+				while (scanner.hasNextLine()) {
+					String line = scanner.nextLine().trim();
+					if (line.isEmpty())
+						continue;
+					Ticket t = new Ticket(line);
+					tickets.add(t);
+				}
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		} else {
+			this.garageID = -1;
+			this.avgStayTime = -1;
+			this.totalFee = -1;
+			this.creationDate = null;
+		}
+	}
+
 	// Function to calculate average stay time
 	private void calculateAvgStayTime() {
 		if (tickets == null || tickets.isEmpty()) {
@@ -56,6 +95,7 @@ public class Report implements Serializable {
 		for (Ticket t : tickets) {
 			totalFee += t.getFee();
 		}
+		totalFee = Math.round(totalFee * 100.0) / 100.0;
 	}
 
 	public int getGarageId() {
@@ -97,8 +137,6 @@ public class Report implements Serializable {
 
 	@Override
 	public String toString() {
-		// Example line in txt file: 1,45,123.75,2025-11-01
-
 		// StringBuilder object to append all parts of this report into a string
 		StringBuilder sb = new StringBuilder();
 		sb.append(garageID).append(",").append(avgStayTime).append(",").append(totalFee).append(",")

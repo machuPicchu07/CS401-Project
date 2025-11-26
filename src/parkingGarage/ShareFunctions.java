@@ -1,9 +1,11 @@
 package parkingGarage;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class ReportFormatter {
+public class ShareFunctions {
 
 	// Formats an entire report to string
 	public static String formatReport(Report report) {
@@ -57,8 +59,27 @@ public class ReportFormatter {
 		return sb.toString();
 	}
 
-	public static void saveReport(Report report, String filename) {
+	public static boolean saveReport(Report report, String filename) {
+		if (!filename.isEmpty()) {
+			filename = filename + ".txt";
+			try (FileWriter writer = new FileWriter(filename, true)) {
+				writer.write(report.toString()); // Writes to file Ticket information
+				return true;
+			} catch (IOException e) {
+				return false;
+			}
+		}
+		return false;
+	}
 
+	public static Report loadReport(String filename) {
+		Report report = null;
+
+		if (!filename.isEmpty()) {
+			filename = filename + ".txt";
+			report = new Report(filename);
+		}
+		return report;
 	}
 
 }

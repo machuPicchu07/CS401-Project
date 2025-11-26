@@ -82,7 +82,7 @@ public class DriverGUI implements Runnable {
 //		frame.setVisible(true); // make visible
 		String frameTitle = "Exit GUI for Garage ID #" + garageID + ", GUI #" + GuiID;
 		JFrame frame = new JFrame(frameTitle);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.setLayout(new FlowLayout(FlowLayout.CENTER));
 
 		createUI(frame);

@@ -51,10 +51,13 @@ public class PGMSOwnerGUI implements Runnable {
 	// Dashboard components
 	private JButton logoutButton;
 	private JButton getReportButton;
-
+	private JButton saveReportButton;
 	private JButton searchButton;
+	private JButton loadReportButton;
+	private JTextField searchReportFilenameField;
 	private JTextField garageNumSearchField;
 	private JTextField searchField;
+	private JTextField filenameField;
 	private JTextArea displayArea;
 	private JButton setRateButton;
 	private JTextField inputRateField;
@@ -155,7 +158,7 @@ public class PGMSOwnerGUI implements Runnable {
 		// GetReport button
 		JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		reportButtonPanel.add(new JLabel("Enter Garage #: "));
-		garageNumSearchField = new JTextField(10);
+		garageNumSearchField = new JTextField(15);
 		garageNumSearchField.setFont(new Font("Arial", Font.PLAIN, 14));
 		reportButtonPanel.add(garageNumSearchField);
 
@@ -163,22 +166,39 @@ public class PGMSOwnerGUI implements Runnable {
 		getReportButton.setFont(new Font("Arial", Font.BOLD, 14));
 		getReportButton.addActionListener(e -> getReport());
 		reportButtonPanel.add(getReportButton);
-
-		// Logout Button
-		logoutButton = new JButton("logout");
-		logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
-		reportButtonPanel.add(logoutButton);
-		logoutButton.addActionListener(e -> logout());
-
 		controlPanel.add(reportButtonPanel);
 
-		// Add some spacing
-		controlPanel.add(Box.createVerticalStrut(15));
+		// Save Report
+		JPanel saveReportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		saveReportButtonPanel.add(new JLabel("Enter filename: "));
+		filenameField = new JTextField(15);
+		filenameField.setFont(new Font("Arial", Font.PLAIN, 14));
+		saveReportButtonPanel.add(filenameField);
 
-		// Search panel
+		saveReportButton = new JButton("Save Current Report");
+		saveReportButton.setFont(new Font("Arial", Font.BOLD, 14));
+		saveReportButton.setEnabled(false);
+		saveReportButton.addActionListener(e -> saveReport());
+		saveReportButtonPanel.add(saveReportButton);
+		controlPanel.add(saveReportButtonPanel);
+
+		// load Report
+		JPanel loadReportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		loadReportButtonPanel.add(new JLabel("Enter filename: "));
+		searchReportFilenameField = new JTextField(15);
+		searchReportFilenameField.setFont(new Font("Arial", Font.PLAIN, 14));
+		loadReportButtonPanel.add(searchReportFilenameField);
+
+		loadReportButton = new JButton("Load Report");
+		loadReportButton.setFont(new Font("Arial", Font.BOLD, 14));
+		loadReportButton.addActionListener(e -> loadReport());
+		loadReportButtonPanel.add(loadReportButton);
+		controlPanel.add(loadReportButtonPanel);
+
+		// Lisense plate Search panel
 		JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		searchPanel.add(new JLabel("License Plate:"));
-		searchField = new JTextField(10);
+		searchPanel.add(new JLabel("License  Plate:"));
+		searchField = new JTextField(15);
 		searchField.setFont(new Font("Arial", Font.PLAIN, 14));
 		searchPanel.add(searchField);
 
@@ -204,6 +224,15 @@ public class PGMSOwnerGUI implements Runnable {
 		setRateButton.addActionListener(e -> setRate());
 		setRatePanel.add(setRateButton);
 		controlPanel.add(setRatePanel);
+
+		// Logout panel
+		JPanel logoutButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		logoutButton = new JButton("logout");
+		logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+		logoutButton.addActionListener(e -> logout());
+		logoutButtonPanel.add(logoutButton);
+		controlPanel.add(logoutButtonPanel);
+		controlPanel.add(Box.createVerticalStrut(15));
 
 		dashboardPanel.add(controlPanel, BorderLayout.NORTH);
 
@@ -335,8 +364,9 @@ public class PGMSOwnerGUI implements Runnable {
 			if (report != null) {
 				this.reportForSaving = report;
 				// use ReportFormatter to format the report
-				String text = ReportFormatter.formatReport(report);
+				String text = ShareFunctions.formatReport(report);
 				displayArea.setText(text);
+				saveReportButton.setEnabled(true);
 			} else {
 				displayArea.setText("No report found");
 			}
@@ -357,13 +387,38 @@ public class PGMSOwnerGUI implements Runnable {
 					displayArea.setCaretPosition(0);
 				} else {
 					// use ReportFormatter to format the ticket
-					String text = ReportFormatter.formatTicket(ticket);
+					String text = ShareFunctions.formatTicket(ticket);
 					displayArea.setText(text);
 					displayArea.setCaretPosition(0);
 				}
 			}
 			searchField.setText("");
 		});
+	}
+
+	private void saveReport() {
+		String filename = filenameField.getText().trim();
+		boolean isSaved = ShareFunctions.saveReport(this.reportForSaving, filename);
+		if (isSaved) {
+			filenameField.setText("");
+			saveReportButton.setEnabled(false);
+			JOptionPane.showMessageDialog(null, "Report saved to " + filename, "Success",
+					JOptionPane.INFORMATION_MESSAGE);
+		} else {
+			JOptionPane.showMessageDialog(null, "Filename can't be empty", "Failed", JOptionPane.INFORMATION_MESSAGE);
+		}
+
+	}
+
+	private void loadReport() {
+		String filename = searchReportFilenameField.getText().trim();
+		Report report = ShareFunctions.loadReport(filename);
+		searchReportFilenameField.setText("");
+		if (report != null && report.getGarageId() != -1) {
+			displayReport(report);
+		} else {
+			JOptionPane.showMessageDialog(null, "Report does not exist", "Failed", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 
 }
