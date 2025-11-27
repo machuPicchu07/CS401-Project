@@ -53,7 +53,9 @@ public class PGMS {
 		PGMSOwnerGUISetRateCB setRateCallback = PGMS::getSetRateCallback;
 		GUISearchTicketCB GUISearchTicketCallback = PGMS::getSearchTicketCallback;
 		GUIgetReportCB ownerGetReportCallback = PGMS::getOwnerGetReportCallback;
-		ownerGUI = new PGMSOwnerGUI(garageCount, setRateCallback, GUISearchTicketCallback, ownerGetReportCallback);
+		GUIgetReportByMonthYearCB ownerGetReportByMonthYearCallback = PGMS::getOwnerGetReportByMonthYearCallback;
+		ownerGUI = new PGMSOwnerGUI(garageCount, setRateCallback, GUISearchTicketCallback, ownerGetReportCallback,
+				ownerGetReportByMonthYearCallback);
 
 		ownerGUI.run();
 		// end of building Server GUI
@@ -549,6 +551,53 @@ public class PGMS {
 						paidList.add(ticket);
 					}
 					report = new Report(garageID, paidList);
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return report;
+	}
+
+	public static Report getOwnerGetReportByMonthYearCallback(int garageID, int month, int year) {
+		String fileNamePaid = "garage#" + garageID + "_paid.txt";
+
+		File file = new File(fileNamePaid);
+		Report report = null;
+
+		if (file.exists()) {
+			List<Ticket> paidList = new ArrayList<>();
+
+			synchronized (fileLockHandler) {
+				try (Scanner scanner = new Scanner(file)) {
+					while (scanner.hasNextLine()) {
+						String line = scanner.nextLine().trim();
+						Ticket ticket = new Ticket(line);
+
+						int ticketMonth = ticket.getEntryTime().getMonthValue();
+						int ticketYear = ticket.getEntryTime().getYear();
+
+						boolean matches = true;
+
+						// If month filter provided, enforce it
+						if (month != -1 && ticketMonth != month) {
+							matches = false;
+						}
+
+						// If year filter provided, enforce it
+						if (year != -1 && ticketYear != year) {
+							matches = false;
+						}
+
+						if (matches) {
+							paidList.add(ticket);
+						}
+					}
+
+					if (!paidList.isEmpty()) {
+						report = new Report(garageID, paidList);
+					}
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}

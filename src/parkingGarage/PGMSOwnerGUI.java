@@ -8,9 +8,6 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Scanner;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -37,6 +34,7 @@ public class PGMSOwnerGUI implements Runnable {
 	PGMSOwnerGUISetRateCB setRateCallback;
 	GUISearchTicketCB GUISearchTicketCallback;
 	GUIgetReportCB ownerGetReportCallback;
+	GUIgetReportByMonthYearCB ownerGetReportByMonthYearCallback;
 	// GUI components
 	private JFrame mainFrame;
 	private JPanel loginPanel;
@@ -54,21 +52,27 @@ public class PGMSOwnerGUI implements Runnable {
 	private JButton saveReportButton;
 	private JButton searchButton;
 	private JButton loadReportButton;
+	private JButton getReportByMonthYearButton;
 	private JTextField searchReportFilenameField;
 	private JTextField garageNumSearchField;
 	private JTextField searchField;
 	private JTextField filenameField;
+	private JTextField monthField;
+	private JTextField yearField;
+
 	private JTextArea displayArea;
 	private JButton setRateButton;
 	private JTextField inputRateField;
 	private JTextField inputRateForGarage;
 
 	public PGMSOwnerGUI(int totalGarages, PGMSOwnerGUISetRateCB setRateCallback,
-			GUISearchTicketCB GUISearchTicketCallback, GUIgetReportCB ownerGetReportCallback) {
+			GUISearchTicketCB GUISearchTicketCallback, GUIgetReportCB ownerGetReportCallback,
+			GUIgetReportByMonthYearCB ownerGetReportByMonthYearCallback) {
 		this.totalGarages = totalGarages;
 		this.setRateCallback = setRateCallback;
 		this.GUISearchTicketCallback = GUISearchTicketCallback;
 		this.ownerGetReportCallback = ownerGetReportCallback;
+		this.ownerGetReportByMonthYearCallback = ownerGetReportByMonthYearCallback;
 	}
 
 	@Override
@@ -156,17 +160,30 @@ public class PGMSOwnerGUI implements Runnable {
 		controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
 		// GetReport button
-		JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		reportButtonPanel.add(new JLabel("Enter Garage #: "));
+		JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		reportPanel.add(new JLabel("Enter Garage #: "));
 		garageNumSearchField = new JTextField(15);
 		garageNumSearchField.setFont(new Font("Arial", Font.PLAIN, 14));
-		reportButtonPanel.add(garageNumSearchField);
+		reportPanel.add(garageNumSearchField);
 
-		getReportButton = new JButton("GetReport");
+		getReportButton = new JButton("Get Full Report");
 		getReportButton.setFont(new Font("Arial", Font.BOLD, 14));
-		getReportButton.addActionListener(e -> getReport());
-		reportButtonPanel.add(getReportButton);
-		controlPanel.add(reportButtonPanel);
+		getReportButton.addActionListener(e -> getFullReport());
+		reportPanel.add(getReportButton);
+
+		reportPanel.add(new JLabel("Or Get Report by Month: "));
+		monthField = new JTextField(5);
+
+		reportPanel.add(monthField);
+		reportPanel.add(new JLabel("Year: "));
+		yearField = new JTextField(5);
+		reportPanel.add(yearField);
+
+		getReportByMonthYearButton = new JButton("Get Report");
+		getReportByMonthYearButton.setFont(new Font("Arial", Font.BOLD, 14));
+		getReportByMonthYearButton.addActionListener(e -> getReport());
+		reportPanel.add(getReportByMonthYearButton);
+		controlPanel.add(reportPanel);
 
 		// Save Report
 		JPanel saveReportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -247,23 +264,23 @@ public class PGMSOwnerGUI implements Runnable {
 
 	private void login() {
 		// get Owner log in username/pw from GUI
-		String username = usernameField.getText().trim();
-		String pw = new String(passwordField.getPassword());
-		statusLabel.setText("");
-		File file = new File(ownerPwFileName);
-		try (Scanner scanner = new Scanner(file)) {
-			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine().trim();
-				String[] parts = line.split(",");
-				if (username.equals(parts[0]) && pw.equals(parts[1])) {
-					loggedInSuccess();
-				}
-			}
-			loggedInFail();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-//		loggedInSuccess();
+//		String username = usernameField.getText().trim();
+//		String pw = new String(passwordField.getPassword());
+//		statusLabel.setText("");
+//		File file = new File(ownerPwFileName);
+//		try (Scanner scanner = new Scanner(file)) {
+//			while (scanner.hasNextLine()) {
+//				String line = scanner.nextLine().trim();
+//				String[] parts = line.split(",");
+//				if (username.equals(parts[0]) && pw.equals(parts[1])) {
+//					loggedInSuccess();
+//				}
+//			}
+//			loggedInFail();
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		}
+		loggedInSuccess();
 
 	}
 
@@ -343,7 +360,7 @@ public class PGMSOwnerGUI implements Runnable {
 	}
 
 	// get report for specific garage
-	private void getReport() {
+	private void getFullReport() {
 		String garageNumber = garageNumSearchField.getText().trim();
 		int garageID;
 		try {
@@ -360,7 +377,7 @@ public class PGMSOwnerGUI implements Runnable {
 
 	public void displayReport(Report report) {
 		SwingUtilities.invokeLater(() -> {
-			garageNumSearchField.setText("");
+//			garageNumSearchField.setText("");
 			if (report != null) {
 				this.reportForSaving = report;
 				// use ReportFormatter to format the report
@@ -419,6 +436,47 @@ public class PGMSOwnerGUI implements Runnable {
 		} else {
 			JOptionPane.showMessageDialog(null, "Report does not exist", "Failed", JOptionPane.INFORMATION_MESSAGE);
 		}
+	}
+
+	private void getReport() {
+		String garageNumber = garageNumSearchField.getText().trim();
+		String monthString = monthField.getText().trim();
+		String yearString = yearField.getText().trim();
+		int garageID;
+		int month = -1;
+		int year = -1;
+		try {
+			garageID = Integer.parseInt(garageNumber);
+		} catch (NumberFormatException ex) {
+			JOptionPane.showMessageDialog(null, "Garage# must be integer", "Invalid input",
+					JOptionPane.INFORMATION_MESSAGE);
+			return; // garage number must be valid integer
+		}
+		try {
+			month = Integer.parseInt(monthString);
+		} catch (NumberFormatException e) {
+		}
+		if (month != -1) {
+			if (month < 1 || month > 12) {
+				JOptionPane.showMessageDialog(null, "Month must be between 1 - 12", "Invalid input",
+						JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+		}
+		try {
+			year = Integer.parseInt(yearString);
+		} catch (NumberFormatException e) {
+		}
+		if (year != -1) {
+			if (year < 1900 || year > 2200) {
+				JOptionPane.showMessageDialog(null, "Invalid year", "Invalid input", JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+
+		}
+		// callback function
+		Report report = ownerGetReportByMonthYearCallback.run(garageID, month, year);
+		displayReport(report);
 	}
 
 }

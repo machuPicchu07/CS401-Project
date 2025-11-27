@@ -61,8 +61,9 @@ public class LicensePlateReader implements Runnable { // (LPR)
 					// start the loop again to pretend car comes in;
 
 				} else if (LPRLocation == Location.Exit) { // Exit License Plate Reader
-					// need to find a way to randomly select a unpaid ticket to pay.
-					// or find random ticket
+					// Since we do not have a real License Plate Reader, we will skip this for now
+					// if we have one, we will have to create a callback function to connect with
+					// server to load the unpaid ticket.
 
 				}
 			} catch (Exception e) {
