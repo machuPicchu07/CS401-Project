@@ -203,7 +203,7 @@ public class PGMS {
 							outMsg.setOperator(operator);
 							out.writeObject(outMsg);
 							out.flush();
-							System.out.println("sent report");
+//							System.out.println("sent report");
 							// Operator(String username, String password, Report report, int garageID)
 							break;
 						}

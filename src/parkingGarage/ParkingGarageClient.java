@@ -148,7 +148,7 @@ public class ParkingGarageClient {
 							Ticket t = msg.getTicket(); // Pull ticket variable from received ticket into variable
 							int id = t.getGuiID(); // Pull GUI ID from Ticket
 
-							System.out.println("Looking up tickets in GUI# " + id);
+							// System.out.println("Looking up tickets in GUI# " + id);
 
 							t.calculateFee(ratePerSecond); // Calculate ticket fee amount, stored in Ticket
 							DriverGUI targetGUI = guiById.get(id); // Creates a DriverGUI object, initialized by

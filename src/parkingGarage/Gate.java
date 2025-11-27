@@ -2,7 +2,7 @@ package parkingGarage;
 
 public class Gate implements Runnable {
 
-	//Private Variables
+	// Private Variables
 	private static int count = 0;
 //	private GateSensor sensor;
 	private int id;
@@ -10,7 +10,7 @@ public class Gate implements Runnable {
 	private volatile boolean isOpen;
 	private int garageID;
 
-	//Default Constructor
+	// Default Constructor
 	public Gate() {
 		this.id = count++;
 //		this.sensor = new GateSensor();
@@ -18,7 +18,7 @@ public class Gate implements Runnable {
 		this.isOpen = false;
 	}
 
-	//Parameterized Constructor
+	// Parameterized Constructor
 	public Gate(int garageID, Location gateTypes) {
 		this.id = count++;
 //		this.sensor = new GateSensor();
@@ -40,19 +40,19 @@ public class Gate implements Runnable {
 		openGate();
 	}
 
-	//Function to Open Gate
+	// Function to Open Gate
 	public void openGate() {
 		if (isOpen)
 			return; // if its already opened, do nothing and return
 
-		//Run a gate sensor object
+		// Run a gate sensor object
 		GateSensor sensor = new GateSensor();
 		Thread sensorThread = new Thread(sensor);
 		sensorThread.setDaemon(true);
 		sensorThread.start();
 
-		System.out.println(
-				(gateLocation == Location.Entry ? "Entry" : "Exit") + " Gate" + Integer.toString(id) + " Gate opened!");
+//		System.out.println(
+//				(gateLocation == Location.Entry ? "Entry" : "Exit") + " Gate" + Integer.toString(id) + " Gate opened!");
 		isOpen = true;
 		while (isOpen) {
 			try {
@@ -61,8 +61,8 @@ public class Gate implements Runnable {
 				e.printStackTrace();
 			}
 			if (sensor.isCarExited()) {
-				System.out.println((gateLocation == Location.Entry ? "Entry" : "Exit") + " Gate" + Integer.toString(id)
-						+ " Gate closed!");
+//				System.out.println((gateLocation == Location.Entry ? "Entry" : "Exit") + " Gate" + Integer.toString(id)
+//						+ " Gate closed!");
 				isOpen = false;
 			}
 		}
