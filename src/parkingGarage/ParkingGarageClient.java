@@ -96,10 +96,10 @@ public class ParkingGarageClient {
 				if (!loggedIn && inMsg.getMsgType() == MsgTypes.SUCCESS) {
 					loggedIn = true;
 					assignedID = inMsg.getGarageID();
-					try (FileWriter writer = new FileWriter(garageIDFileName, true)) { // Opens file
+					try (FileWriter writer = new FileWriter(garageIDFileName)) { // Opens file
 						writer.write(String.valueOf(assignedID));// Writes to assignedID to file
 					}
-					try (FileWriter writer = new FileWriter(garageRateFileName, true)) { // Opens file
+					try (FileWriter writer = new FileWriter(garageRateFileName)) { // Opens file
 						writer.write(String.valueOf(ratePerSecond));// Writes to assignedID to file
 					}
 				}
