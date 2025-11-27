@@ -8,6 +8,9 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -263,23 +266,23 @@ public class PGMSOwnerGUI implements Runnable {
 
 	private void login() {
 		// get Owner log in username/pw from GUI
-//		String username = usernameField.getText().trim();
-//		String pw = new String(passwordField.getPassword());
-//		statusLabel.setText("");
-//		File file = new File(ownerPwFileName);
-//		try (Scanner scanner = new Scanner(file)) {
-//			while (scanner.hasNextLine()) {
-//				String line = scanner.nextLine().trim();
-//				String[] parts = line.split(",");
-//				if (username.equals(parts[0]) && pw.equals(parts[1])) {
-//					loggedInSuccess();
-//				}
-//			}
-//			loggedInFail();
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
-		loggedInSuccess();
+		String username = usernameField.getText().trim();
+		String pw = new String(passwordField.getPassword());
+		statusLabel.setText("");
+		File file = new File(ownerPwFileName);
+		try (Scanner scanner = new Scanner(file)) {
+			while (scanner.hasNextLine()) {
+				String line = scanner.nextLine().trim();
+				String[] parts = line.split(",");
+				if (username.equals(parts[0]) && pw.equals(parts[1])) {
+					loggedInSuccess();
+				}
+			}
+			loggedInFail();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+//		loggedInSuccess();
 
 	}
 
