@@ -170,7 +170,7 @@ public class ParkingGarageClient {
 							operatorGUI.loggedInFail();
 							break;
 						}
-						case GETREPORT: {
+						case GETREPORT, GETREPORTBYMONTHYEAR: {
 							operatorGUI.displayReport(msg.getOperator().getReport());
 							break;
 						}
@@ -297,11 +297,29 @@ public class ParkingGarageClient {
 					e.printStackTrace();
 				}
 			};
+
+			GUIgetReportByMonthYearCB getReportByMonthYearCallback = (int OptionalgarageID, int month, int year) -> {
+				try {
+					Message msg = new Message(MsgTypes.GETREPORTBYMONTHYEAR, garageID);
+					Operator operator = new Operator();
+					Report report = new Report();
+					report.setMonth(month);
+					report.setYear(year);
+					operator.setReport(report);
+					msg.setOperator(operator);
+					out.writeObject(msg);
+					out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+
+				}
+				return null;
+			};
 			// === DEFINE THE CALLBACK FUNCTION AND PASS TO THE Operator GUI ===
 
 			// =========== Create/start Operator GUI ==================
 			operatorGUI = new OperatorGUI(garageID, operatorLoginCallback, operatorGetReportCallback,
-					operatorGUISearchTicketCallback, operatorGUISetRateCallback);
+					operatorGUISearchTicketCallback, operatorGUISetRateCallback, getReportByMonthYearCallback);
 			new Thread(operatorGUI).start();
 
 		} catch (

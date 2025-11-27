@@ -36,6 +36,7 @@ public class OperatorGUI implements Runnable {
 	GUIgetReportCB operatorGetReportCallback;
 	GUISearchTicketCB operatorGUISearchTicketCallback;
 	OperatorGUISetRateCB operatorGUISetRateCallback;
+	GUIgetReportByMonthYearCB getReportByMonthYearCallback;
 	// GUI components
 	private JFrame mainFrame;
 	private JPanel loginPanel;
@@ -54,6 +55,8 @@ public class OperatorGUI implements Runnable {
 	private JButton loadReportButton;
 	private JTextField searchReportFilenameField;
 	private JTextField filenameField;
+	private JTextField monthField;
+	private JTextField yearField;
 	private JButton searchButton;
 	private JTextField searchField;
 	private JTextArea displayArea;
@@ -61,7 +64,8 @@ public class OperatorGUI implements Runnable {
 	private JTextField inputRateField;
 
 	public OperatorGUI(int garageID, OperatorGUILoginCB operatorLoginCallback, GUIgetReportCB operatorGetReportCallback,
-			GUISearchTicketCB operatorGUISearchTicketCallback, OperatorGUISetRateCB operatorGUISetRateCallback) {
+			GUISearchTicketCB operatorGUISearchTicketCallback, OperatorGUISetRateCB operatorGUISetRateCallback,
+			GUIgetReportByMonthYearCB getReportByMonthYearCallback) {
 
 		this.garageID = garageID;
 		this.reportForSaving = null;
@@ -69,6 +73,7 @@ public class OperatorGUI implements Runnable {
 		this.operatorGetReportCallback = operatorGetReportCallback;
 		this.operatorGUISearchTicketCallback = operatorGUISearchTicketCallback;
 		this.operatorGUISetRateCallback = operatorGUISetRateCallback;
+		this.getReportByMonthYearCallback = getReportByMonthYearCallback;
 
 	}
 
@@ -161,12 +166,18 @@ public class OperatorGUI implements Runnable {
 		controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
 		// GetReport button
-		JPanel reportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		reportPanel.add(new JLabel("Month: "));
+		monthField = new JTextField(5);
+		reportPanel.add(monthField);
+		reportPanel.add(new JLabel("Year: "));
+		yearField = new JTextField(5);
+		reportPanel.add(yearField);
 		getReportButton = new JButton("GetReport");
 		getReportButton.setFont(new Font("Arial", Font.BOLD, 14));
 		getReportButton.addActionListener(e -> getReport());
-		reportButtonPanel.add(getReportButton);
-		controlPanel.add(reportButtonPanel);
+		reportPanel.add(getReportButton);
+		controlPanel.add(reportPanel);
 
 		// Save Report
 		JPanel saveReportButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -300,7 +311,39 @@ public class OperatorGUI implements Runnable {
 	}
 
 	private void getReport() {
-		operatorGetReportCallback.run(garageID);
+		String monthString = monthField.getText().trim();
+		String yearString = yearField.getText().trim();
+		int month = -1;
+		int year = -1;
+
+		try {
+			month = Integer.parseInt(monthString);
+		} catch (NumberFormatException e) {
+		}
+		if (month != -1) {
+			if (month < 1 || month > 12) {
+				JOptionPane.showMessageDialog(null, "Month must be between 1 - 12", "Invalid input",
+						JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+		}
+		try {
+			year = Integer.parseInt(yearString);
+		} catch (NumberFormatException e) {
+		}
+		if (year != -1) {
+			if (year < 1900 || year > 2200) {
+				JOptionPane.showMessageDialog(null, "Invalid year", "Invalid input", JOptionPane.INFORMATION_MESSAGE);
+				return;
+			}
+
+		}
+		if (month == -1 && year == -1) {
+			operatorGetReportCallback.run(garageID);
+		} else {
+			getReportByMonthYearCallback.run(garageID, month, year);
+		}
+
 	}
 
 	public void displayReport(Report report) {

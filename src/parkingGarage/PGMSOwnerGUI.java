@@ -173,7 +173,6 @@ public class PGMSOwnerGUI implements Runnable {
 
 		reportPanel.add(new JLabel("Or Get Report by Month: "));
 		monthField = new JTextField(5);
-
 		reportPanel.add(monthField);
 		reportPanel.add(new JLabel("Year: "));
 		yearField = new JTextField(5);

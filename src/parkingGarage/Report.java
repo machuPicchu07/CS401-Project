@@ -18,8 +18,14 @@ public class Report implements Serializable {
 	private LocalDate creationDate;
 	private List<Ticket> tickets;
 
+	// Private variable for search report;
+	private int month;
+	private int year;
+
 	// Default Constructor
 	public Report() {
+		this.month = -1;
+		this.year = -1;
 		this.garageID = 0;
 		this.avgStayTime = 0;
 		this.totalFee = 0;
@@ -28,6 +34,8 @@ public class Report implements Serializable {
 
 	// Parameterized Constructor
 	public Report(int garageID, List<Ticket> tickets) {
+		this.month = -1;
+		this.year = -1;
 		this.garageID = garageID;
 		this.tickets = tickets; // PAIDTICKETS
 		this.creationDate = LocalDate.now();
@@ -65,11 +73,14 @@ public class Report implements Serializable {
 				e.printStackTrace();
 			}
 		} else {
+
 			this.garageID = -1;
 			this.avgStayTime = -1;
 			this.totalFee = -1;
 			this.creationDate = null;
 		}
+		this.month = -1;
+		this.year = -1;
 	}
 
 	// Function to calculate average stay time
@@ -104,6 +115,22 @@ public class Report implements Serializable {
 
 	public int getAvgStayTIme() {
 		return avgStayTime;
+	}
+
+	public int getMonth() {
+		return month;
+	}
+
+	public int getYear() {
+		return year;
+	}
+
+	public void setMonth(int month) {
+		this.month = month;
+	}
+
+	public void setYear(int year) {
+		this.year = year;
 	}
 
 	public double getTotalFee() {

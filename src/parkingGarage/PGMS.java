@@ -44,7 +44,7 @@ public class PGMS {
 		ServerSocket server = null;
 
 		try {
-			checkGarages();
+			checkGarages(); // line 453
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -170,8 +170,7 @@ public class PGMS {
 							break;
 						}
 						case TICKETPAID: {
-//							String str = inMsg.getTicket().toString();
-//							System.out.println(str);
+
 							ticketIsPaid(inMsg);
 							break;
 						}
@@ -197,16 +196,29 @@ public class PGMS {
 							synchronized (source) {
 								copy = new ArrayList<>(source); // shallow copy of the list
 							}
-
 							Report report = new Report(garageID, copy);
-
 							Operator operator = new Operator();
 							operator.setReport(report);
 							outMsg.setOperator(operator);
 							out.writeObject(outMsg);
 							out.flush();
-//							System.out.println("sent report");
-							// Operator(String username, String password, Report report, int garageID)
+
+							break;
+						}
+						case GETREPORTBYMONTHYEAR: {
+							outMsg = new Message(MsgTypes.GETREPORTBYMONTHYEAR, garageID);
+							int month = inMsg.getOperator().getReport().getMonth();
+							int year = inMsg.getOperator().getReport().getYear();
+							List<Ticket> copy = searchTicketByMonthYear(month, year);
+							Report report = null;
+							if (copy.size() != 0) {
+								report = new Report(garageID, copy);
+							}
+							Operator operator = new Operator();
+							operator.setReport(report);
+							outMsg.setOperator(operator);
+							out.writeObject(outMsg);
+							out.flush();
 							break;
 						}
 						case SEARCHTICKET: {
@@ -450,6 +462,37 @@ public class PGMS {
 					e.printStackTrace();
 				}
 			}
+		}
+
+		private List<Ticket> searchTicketByMonthYear(int month, int year) {
+			List<Ticket> source = PAIDTICKETS.get(garageID);
+			List<Ticket> copy = new ArrayList<>();
+			if (!source.isEmpty()) {
+				synchronized (source) {
+					for (Ticket ticket : source) {
+						int ticketMonth = ticket.getEntryTime().getMonthValue();
+						int ticketYear = ticket.getEntryTime().getYear();
+
+						boolean matches = true;
+
+						// If month filter provided, enforce it
+						if (month != -1 && ticketMonth != month) {
+							matches = false;
+						}
+
+						// If year filter provided, enforce it
+						if (year != -1 && ticketYear != year) {
+							matches = false;
+						}
+
+						if (matches) {
+							copy.add(ticket);
+						}
+					}
+
+				}
+			}
+			return copy;
 		}
 	}
 
